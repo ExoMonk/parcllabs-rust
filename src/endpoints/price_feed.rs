@@ -2,7 +2,7 @@
 
 use crate::endpoints::market_metrics::MetricsParams;
 use crate::error::{ParclError, Result};
-use crate::models::{PaginatedResponse, PriceFeedEntry};
+use crate::models::{MetricsResponse, PriceFeedEntry};
 use reqwest::Client;
 
 /// Client for price feed API endpoints.
@@ -26,7 +26,7 @@ impl<'a> PriceFeedClient<'a> {
         &self,
         parcl_id: i64,
         params: Option<MetricsParams>,
-    ) -> Result<PaginatedResponse<PriceFeedEntry>> {
+    ) -> Result<MetricsResponse<PriceFeedEntry>> {
         let query = params.map(|p| p.to_query_string()).unwrap_or_default();
         let url = format!(
             "{}/v1/price_feed/{}/history{}",
@@ -49,7 +49,7 @@ impl<'a> PriceFeedClient<'a> {
             });
         }
 
-        let data: PaginatedResponse<PriceFeedEntry> = response.json().await?;
+        let data: MetricsResponse<PriceFeedEntry> = response.json().await?;
         Ok(data)
     }
 }

@@ -1,11 +1,12 @@
 //! Search for housing markets by name or location.
 //!
-//! Usage: PARCL_LABS_API_KEY=your_key cargo run --example search_markets
+//! Usage: cargo run --example search_markets
 
 use parcllabs::{LocationType, ParclClient};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    dotenvy::dotenv().ok();
     let client = ParclClient::new()?;
 
     // Search for Los Angeles markets
@@ -36,14 +37,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    // Search by state and location type
-    println!("\n\nSearching for cities in California...\n");
+    // Search for cities in California
+    println!("\n\nSearching for 'San' in California (cities only)...\n");
     let ca_cities = client
         .search()
-        .markets_by_state("CA", Some(LocationType::City), Some(5))
+        .markets("San", Some("CA"), Some(LocationType::City), Some(5))
         .await?;
 
-    println!("Top {} California cities:", ca_cities.items.len());
+    println!("California cities matching 'San':");
     for market in &ca_cities.items {
         println!("  {} (parcl_id: {})", market.name, market.parcl_id);
     }

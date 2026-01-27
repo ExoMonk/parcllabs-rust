@@ -69,15 +69,6 @@ impl<'a> SearchClient<'a> {
         Ok(data)
     }
 
-    /// Searches for all markets in a state.
-    pub async fn markets_by_state(
-        &self,
-        state: &str,
-        location_type: Option<LocationType>,
-        limit: Option<u32>,
-    ) -> Result<PaginatedResponse<Market>> {
-        self.markets("", Some(state), location_type, limit).await
-    }
 }
 
 mod urlencoding {

@@ -2,9 +2,20 @@
 
 use serde::{Deserialize, Serialize};
 
-/// Paginated API response wrapper.
+/// Paginated API response wrapper (for search endpoints).
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct PaginatedResponse<T> {
+    pub items: Vec<T>,
+    pub total: u64,
+    pub limit: u64,
+    pub offset: u64,
+    pub links: PaginationLinks,
+}
+
+/// Paginated response for market metrics (includes parcl_id at top level).
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct MetricsResponse<T> {
+    pub parcl_id: i64,
     pub items: Vec<T>,
     pub total: u64,
     pub limit: u64,
@@ -74,10 +85,9 @@ impl LocationType {
 // Market Metrics
 // ============================================================================
 
-/// Housing transaction and listing counts for a market.
+/// Housing transaction and listing counts.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct HousingEventCounts {
-    pub parcl_id: i64,
     pub date: String,
     pub sales: Option<i64>,
     pub new_listings_for_sale: Option<i64>,
@@ -87,7 +97,6 @@ pub struct HousingEventCounts {
 /// Housing unit counts by property type.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct HousingStock {
-    pub parcl_id: i64,
     pub date: String,
     pub single_family: Option<i64>,
     pub condo: Option<i64>,
@@ -98,7 +107,6 @@ pub struct HousingStock {
 /// Median prices for housing events.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct HousingEventPrices {
-    pub parcl_id: i64,
     pub date: String,
     pub median_sale_price: Option<f64>,
     pub median_list_price: Option<f64>,
@@ -112,7 +120,6 @@ pub struct HousingEventPrices {
 /// Price feed data point for trading.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct PriceFeedEntry {
-    pub parcl_id: i64,
     pub date: String,
     pub price: f64,
     pub price_feed_type: Option<String>,
@@ -122,10 +129,9 @@ pub struct PriceFeedEntry {
 // Investor Metrics
 // ============================================================================
 
-/// Investor ownership data for a market.
+/// Investor ownership data.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct InvestorHousingStock {
-    pub parcl_id: i64,
     pub date: String,
     pub investor_owned_units: Option<i64>,
     pub investor_ownership_pct: Option<f64>,
@@ -138,7 +144,6 @@ pub struct InvestorHousingStock {
 /// For-sale inventory metrics.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct ForSaleInventory {
-    pub parcl_id: i64,
     pub date: String,
     pub total_inventory: Option<i64>,
     pub median_days_on_market: Option<i64>,
@@ -151,7 +156,6 @@ pub struct ForSaleInventory {
 /// Rental market metrics.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct RentalMetrics {
-    pub parcl_id: i64,
     pub date: String,
     /// Annual rental income divided by median sale price.
     pub gross_yield: Option<f64>,

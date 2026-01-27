@@ -1,7 +1,7 @@
 //! Market metrics endpoints for housing data retrieval.
 
 use crate::error::{ParclError, Result};
-use crate::models::{HousingEventCounts, HousingEventPrices, HousingStock, PaginatedResponse};
+use crate::models::{HousingEventCounts, HousingEventPrices, HousingStock, MetricsResponse};
 use reqwest::Client;
 
 /// Client for market metrics API endpoints.
@@ -83,7 +83,7 @@ impl<'a> MarketMetricsClient<'a> {
         &self,
         parcl_id: i64,
         params: Option<MetricsParams>,
-    ) -> Result<PaginatedResponse<HousingEventCounts>> {
+    ) -> Result<MetricsResponse<HousingEventCounts>> {
         let query = params.unwrap_or_default().to_query_string();
         let url = format!(
             "{}/v1/market_metrics/{}/housing_event_counts{}",
@@ -97,7 +97,7 @@ impl<'a> MarketMetricsClient<'a> {
         &self,
         parcl_id: i64,
         params: Option<MetricsParams>,
-    ) -> Result<PaginatedResponse<HousingStock>> {
+    ) -> Result<MetricsResponse<HousingStock>> {
         let query = params.unwrap_or_default().to_query_string();
         let url = format!(
             "{}/v1/market_metrics/{}/housing_stock{}",
@@ -111,7 +111,7 @@ impl<'a> MarketMetricsClient<'a> {
         &self,
         parcl_id: i64,
         params: Option<MetricsParams>,
-    ) -> Result<PaginatedResponse<HousingEventPrices>> {
+    ) -> Result<MetricsResponse<HousingEventPrices>> {
         let query = params.unwrap_or_default().to_query_string();
         let url = format!(
             "{}/v1/market_metrics/{}/housing_event_prices{}",
@@ -123,7 +123,7 @@ impl<'a> MarketMetricsClient<'a> {
     async fn fetch<T: serde::de::DeserializeOwned>(
         &self,
         url: &str,
-    ) -> Result<PaginatedResponse<T>> {
+    ) -> Result<MetricsResponse<T>> {
         let response = self
             .http
             .get(url)
@@ -140,7 +140,7 @@ impl<'a> MarketMetricsClient<'a> {
             });
         }
 
-        let data: PaginatedResponse<T> = response.json().await?;
+        let data: MetricsResponse<T> = response.json().await?;
         Ok(data)
     }
 }

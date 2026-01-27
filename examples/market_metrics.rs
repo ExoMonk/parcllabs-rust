@@ -1,11 +1,12 @@
 //! Fetch housing metrics for a market.
 //!
-//! Usage: PARCL_LABS_API_KEY=your_key cargo run --example market_metrics
+//! Usage: cargo run --example market_metrics
 
 use parcllabs::{MetricsParams, ParclClient};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    dotenvy::dotenv().ok();
     let client = ParclClient::new()?;
 
     // First, find Los Angeles
