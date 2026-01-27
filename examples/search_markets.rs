@@ -76,5 +76,40 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         );
     }
 
+    // Demonstrate auto-pagination
+    println!("\n\nAuto-pagination demo: Fetching all 'San' cities in California...\n");
+
+    // First, fetch just one page to see the total
+    let params = SearchParams::new()
+        .query("San")
+        .state("CA")
+        .location_type(LocationType::City)
+        .limit(5);
+
+    let first_page = client.search().markets(params).await?;
+    println!(
+        "Without auto_paginate: fetched {} of {} total results\n",
+        first_page.items.len(),
+        first_page.total
+    );
+
+    // Now fetch all pages
+    let params = SearchParams::new()
+        .query("San")
+        .state("CA")
+        .location_type(LocationType::City)
+        .limit(5)
+        .auto_paginate(true);
+
+    let all_results = client.search().markets(params).await?;
+    println!(
+        "With auto_paginate: fetched {} of {} total results:",
+        all_results.items.len(),
+        all_results.total
+    );
+    for (i, market) in all_results.items.iter().enumerate() {
+        println!("  {}. {} (parcl_id: {})", i + 1, market.name, market.parcl_id);
+    }
+
     Ok(())
 }

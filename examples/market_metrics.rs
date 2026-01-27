@@ -130,5 +130,35 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
+    // Demonstrate auto-pagination for metrics
+    println!("\n--- Auto-pagination Demo ---");
+
+    // First, fetch one page to see the total
+    let params = MetricsParams::new().limit(5).start_date("2024-01-01");
+    let first_page = client
+        .market_metrics()
+        .housing_event_counts(la.parcl_id, Some(params))
+        .await?;
+    println!(
+        "\nWithout auto_paginate: fetched {} of {} total events",
+        first_page.items.len(),
+        first_page.total
+    );
+
+    // Now fetch all pages
+    let params = MetricsParams::new()
+        .limit(5)
+        .start_date("2024-01-01")
+        .auto_paginate(true);
+    let all_events = client
+        .market_metrics()
+        .housing_event_counts(la.parcl_id, Some(params))
+        .await?;
+    println!(
+        "With auto_paginate: fetched {} of {} total events",
+        all_events.items.len(),
+        all_events.total
+    );
+
     Ok(())
 }

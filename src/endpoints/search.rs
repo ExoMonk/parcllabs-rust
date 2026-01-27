@@ -24,6 +24,7 @@ pub struct SearchParams {
     pub sort_by: Option<SortBy>,
     pub sort_order: Option<SortOrder>,
     pub limit: Option<u32>,
+    pub auto_paginate: bool,
 }
 
 impl SearchParams {
@@ -85,9 +86,15 @@ impl SearchParams {
         self
     }
 
-    /// Maximum number of results to return
+    /// Maximum number of results per page (default: API default)
     pub fn limit(mut self, limit: u32) -> Self {
         self.limit = Some(limit);
+        self
+    }
+
+    /// Automatically fetch all pages of results.
+    pub fn auto_paginate(mut self, auto_paginate: bool) -> Self {
+        self.auto_paginate = auto_paginate;
         self
     }
 
@@ -151,15 +158,19 @@ impl<'a> SearchClient<'a> {
     /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
     /// let client = ParclClient::new()?;
     ///
+    /// // Single page
     /// let params = SearchParams::new()
     ///     .query("Los Angeles")
     ///     .state("CA")
-    ///     .location_type(LocationType::City)
-    ///     .sort_by(SortBy::TotalPopulation)
-    ///     .sort_order(SortOrder::Desc)
     ///     .limit(10);
-    ///
     /// let markets = client.search().markets(params).await?;
+    ///
+    /// // Auto-paginate to get all results
+    /// let params = SearchParams::new()
+    ///     .query("San")
+    ///     .state("CA")
+    ///     .auto_paginate(true);
+    /// let all_markets = client.search().markets(params).await?;
     /// # Ok(())
     /// # }
     /// ```
@@ -167,9 +178,23 @@ impl<'a> SearchClient<'a> {
         let query = params.to_query_string();
         let url = format!("{}/v1/search/markets{}", self.base_url, query);
 
+        let mut response = self.fetch_page(&url).await?;
+
+        if params.auto_paginate {
+            while let Some(ref next_url) = response.links.next {
+                let next_page = self.fetch_page(next_url).await?;
+                response.items.extend(next_page.items);
+                response.links = next_page.links;
+            }
+        }
+
+        Ok(response)
+    }
+
+    async fn fetch_page(&self, url: &str) -> Result<PaginatedResponse<Market>> {
         let response = self
             .http
-            .get(&url)
+            .get(url)
             .header("Authorization", self.api_key)
             .send()
             .await?;

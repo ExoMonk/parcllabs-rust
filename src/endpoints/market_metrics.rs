@@ -21,6 +21,7 @@ pub struct MetricsParams {
     pub start_date: Option<String>,
     pub end_date: Option<String>,
     pub property_type: Option<PropertyType>,
+    pub auto_paginate: bool,
 }
 
 impl MetricsParams {
@@ -28,21 +29,25 @@ impl MetricsParams {
         Self::default()
     }
 
+    /// Maximum number of results per page
     pub fn limit(mut self, limit: u32) -> Self {
         self.limit = Some(limit);
         self
     }
 
+    /// Offset for pagination
     pub fn offset(mut self, offset: u32) -> Self {
         self.offset = Some(offset);
         self
     }
 
+    /// Filter results starting from this date (YYYY-MM-DD)
     pub fn start_date(mut self, date: impl Into<String>) -> Self {
         self.start_date = Some(date.into());
         self
     }
 
+    /// Filter results ending at this date (YYYY-MM-DD)
     pub fn end_date(mut self, date: impl Into<String>) -> Self {
         self.end_date = Some(date.into());
         self
@@ -51,6 +56,12 @@ impl MetricsParams {
     /// Filter by property type (single family, condo, townhouse, etc.)
     pub fn property_type(mut self, property_type: PropertyType) -> Self {
         self.property_type = Some(property_type);
+        self
+    }
+
+    /// Automatically fetch all pages of results.
+    pub fn auto_paginate(mut self, auto_paginate: bool) -> Self {
+        self.auto_paginate = auto_paginate;
         self
     }
 
@@ -96,12 +107,14 @@ impl<'a> MarketMetricsClient<'a> {
         parcl_id: i64,
         params: Option<MetricsParams>,
     ) -> Result<MetricsResponse<HousingEventCounts>> {
-        let query = params.unwrap_or_default().to_query_string();
+        let params = params.unwrap_or_default();
+        let auto_paginate = params.auto_paginate;
+        let query = params.to_query_string();
         let url = format!(
             "{}/v1/market_metrics/{}/housing_event_counts{}",
             self.base_url, parcl_id, query
         );
-        self.fetch(&url).await
+        self.fetch_with_pagination(&url, auto_paginate).await
     }
 
     /// Retrieves housing stock data (single-family, condo, townhouse counts).
@@ -110,12 +123,14 @@ impl<'a> MarketMetricsClient<'a> {
         parcl_id: i64,
         params: Option<MetricsParams>,
     ) -> Result<MetricsResponse<HousingStock>> {
-        let query = params.unwrap_or_default().to_query_string();
+        let params = params.unwrap_or_default();
+        let auto_paginate = params.auto_paginate;
+        let query = params.to_query_string();
         let url = format!(
             "{}/v1/market_metrics/{}/housing_stock{}",
             self.base_url, parcl_id, query
         );
-        self.fetch(&url).await
+        self.fetch_with_pagination(&url, auto_paginate).await
     }
 
     /// Retrieves housing event prices (median sale, list, rental prices).
@@ -124,15 +139,38 @@ impl<'a> MarketMetricsClient<'a> {
         parcl_id: i64,
         params: Option<MetricsParams>,
     ) -> Result<MetricsResponse<HousingEventPrices>> {
-        let query = params.unwrap_or_default().to_query_string();
+        let params = params.unwrap_or_default();
+        let auto_paginate = params.auto_paginate;
+        let query = params.to_query_string();
         let url = format!(
             "{}/v1/market_metrics/{}/housing_event_prices{}",
             self.base_url, parcl_id, query
         );
-        self.fetch(&url).await
+        self.fetch_with_pagination(&url, auto_paginate).await
     }
 
-    async fn fetch<T: serde::de::DeserializeOwned>(&self, url: &str) -> Result<MetricsResponse<T>> {
+    async fn fetch_with_pagination<T: serde::de::DeserializeOwned>(
+        &self,
+        url: &str,
+        auto_paginate: bool,
+    ) -> Result<MetricsResponse<T>> {
+        let mut response = self.fetch_page(url).await?;
+
+        if auto_paginate {
+            while let Some(ref next_url) = response.links.next {
+                let next_page: MetricsResponse<T> = self.fetch_page(next_url).await?;
+                response.items.extend(next_page.items);
+                response.links = next_page.links;
+            }
+        }
+
+        Ok(response)
+    }
+
+    async fn fetch_page<T: serde::de::DeserializeOwned>(
+        &self,
+        url: &str,
+    ) -> Result<MetricsResponse<T>> {
         let response = self
             .http
             .get(url)
