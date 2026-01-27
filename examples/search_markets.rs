@@ -2,7 +2,7 @@
 //!
 //! Usage: cargo run --example search_markets
 
-use parcllabs::{LocationType, ParclClient};
+use parcllabs::{LocationType, ParclClient, SearchParams, SortBy, SortOrder, USRegion};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -11,10 +11,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Search for Los Angeles markets
     println!("Searching for 'Los Angeles'...\n");
-    let results = client
-        .search()
-        .markets("Los Angeles", None, None, Some(10))
-        .await?;
+    let params = SearchParams::new().query("Los Angeles").limit(10);
+    let results = client.search().markets(params).await?;
 
     println!(
         "Found {} markets (showing first {}):\n",
@@ -37,16 +35,45 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    // Search for cities in California
-    println!("\n\nSearching for 'San' in California (cities only)...\n");
-    let ca_cities = client
-        .search()
-        .markets("San", Some("CA"), Some(LocationType::City), Some(5))
-        .await?;
+    // Search for cities in California with sorting
+    println!("\n\nSearching for 'San' in California (cities, sorted by population)...\n");
+    let params = SearchParams::new()
+        .query("San")
+        .state("CA")
+        .location_type(LocationType::City)
+        .sort_by(SortBy::TotalPopulation)
+        .sort_order(SortOrder::Desc)
+        .limit(5);
 
-    println!("California cities matching 'San':");
+    let ca_cities = client.search().markets(params).await?;
+
+    println!("Top California cities matching 'San' by population:");
     for market in &ca_cities.items {
-        println!("  {} (parcl_id: {})", market.name, market.parcl_id);
+        println!(
+            "  {} - pop: {} (parcl_id: {})",
+            market.name,
+            market.total_population.unwrap_or(0),
+            market.parcl_id
+        );
+    }
+
+    // Search by region
+    println!("\n\nSearching for markets in Pacific region...\n");
+    let params = SearchParams::new()
+        .query("port")
+        .region(USRegion::Pacific)
+        .limit(5);
+
+    let pacific = client.search().markets(params).await?;
+
+    println!("Pacific region markets matching 'port':");
+    for market in &pacific.items {
+        println!(
+            "  {} ({}) - {}",
+            market.name,
+            market.location_type,
+            market.state_abbreviation.as_deref().unwrap_or("N/A")
+        );
     }
 
     Ok(())

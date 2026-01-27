@@ -1,7 +1,7 @@
 //! Market search endpoints for discovering Parcl market identifiers.
 
 use crate::error::{ParclError, Result};
-use crate::models::{LocationType, Market, PaginatedResponse};
+use crate::models::{LocationType, Market, PaginatedResponse, SortBy, SortOrder, USRegion};
 use reqwest::Client;
 
 /// Client for search API endpoints.
@@ -9,6 +9,128 @@ pub struct SearchClient<'a> {
     http: &'a Client,
     base_url: &'a str,
     api_key: &'a str,
+}
+
+/// Query parameters for market search.
+#[derive(Debug, Default, Clone)]
+pub struct SearchParams {
+    pub query: Option<String>,
+    pub location_type: Option<LocationType>,
+    pub region: Option<USRegion>,
+    pub state_abbreviation: Option<String>,
+    pub state_fips_code: Option<String>,
+    pub parcl_id: Option<i64>,
+    pub geoid: Option<String>,
+    pub sort_by: Option<SortBy>,
+    pub sort_order: Option<SortOrder>,
+    pub limit: Option<u32>,
+}
+
+impl SearchParams {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Search query (city name, ZIP code, etc.). Minimum 3 characters.
+    pub fn query(mut self, query: impl Into<String>) -> Self {
+        self.query = Some(query.into());
+        self
+    }
+
+    /// Filter by location type (City, County, Zip5, etc.)
+    pub fn location_type(mut self, location_type: LocationType) -> Self {
+        self.location_type = Some(location_type);
+        self
+    }
+
+    /// Filter by US region (Pacific, Mountain, etc.)
+    pub fn region(mut self, region: USRegion) -> Self {
+        self.region = Some(region);
+        self
+    }
+
+    /// Filter by state abbreviation (e.g., "CA", "NY")
+    pub fn state(mut self, state: impl Into<String>) -> Self {
+        self.state_abbreviation = Some(state.into().to_uppercase());
+        self
+    }
+
+    /// Filter by state FIPS code (e.g., "06" for California)
+    pub fn state_fips_code(mut self, code: impl Into<String>) -> Self {
+        self.state_fips_code = Some(code.into());
+        self
+    }
+
+    /// Filter by specific parcl_id
+    pub fn parcl_id(mut self, parcl_id: i64) -> Self {
+        self.parcl_id = Some(parcl_id);
+        self
+    }
+
+    /// Filter by geographic ID
+    pub fn geoid(mut self, geoid: impl Into<String>) -> Self {
+        self.geoid = Some(geoid.into());
+        self
+    }
+
+    /// Sort results by field
+    pub fn sort_by(mut self, sort_by: SortBy) -> Self {
+        self.sort_by = Some(sort_by);
+        self
+    }
+
+    /// Sort order (ascending or descending)
+    pub fn sort_order(mut self, sort_order: SortOrder) -> Self {
+        self.sort_order = Some(sort_order);
+        self
+    }
+
+    /// Maximum number of results to return
+    pub fn limit(mut self, limit: u32) -> Self {
+        self.limit = Some(limit);
+        self
+    }
+
+    fn to_query_string(&self) -> String {
+        let mut params = Vec::new();
+
+        if let Some(ref q) = self.query {
+            params.push(format!("query={}", urlencoding::encode(q)));
+        }
+        if let Some(lt) = self.location_type {
+            params.push(format!("location_type={}", lt.as_str()));
+        }
+        if let Some(r) = self.region {
+            params.push(format!("region={}", r.as_str()));
+        }
+        if let Some(ref s) = self.state_abbreviation {
+            params.push(format!("state_abbreviation={}", s));
+        }
+        if let Some(ref s) = self.state_fips_code {
+            params.push(format!("state_fips_code={}", s));
+        }
+        if let Some(id) = self.parcl_id {
+            params.push(format!("parcl_id={}", id));
+        }
+        if let Some(ref g) = self.geoid {
+            params.push(format!("geoid={}", g));
+        }
+        if let Some(sb) = self.sort_by {
+            params.push(format!("sort_by={}", sb.as_str()));
+        }
+        if let Some(so) = self.sort_order {
+            params.push(format!("sort_order={}", so.as_str()));
+        }
+        if let Some(l) = self.limit {
+            params.push(format!("limit={}", l));
+        }
+
+        if params.is_empty() {
+            String::new()
+        } else {
+            format!("?{}", params.join("&"))
+        }
+    }
 }
 
 impl<'a> SearchClient<'a> {
@@ -20,34 +142,30 @@ impl<'a> SearchClient<'a> {
         }
     }
 
-    /// Searches for markets by name, ZIP code, or other criteria.
-    pub async fn markets(
-        &self,
-        query: &str,
-        state: Option<&str>,
-        location_type: Option<LocationType>,
-        limit: Option<u32>,
-    ) -> Result<PaginatedResponse<Market>> {
-        let mut url = format!("{}/v1/search/markets", self.base_url);
-        let mut params = vec![("query", query.to_string())];
-
-        if let Some(s) = state {
-            params.push(("state_abbreviation", s.to_string()));
-        }
-        if let Some(lt) = location_type {
-            params.push(("location_type", lt.as_str().to_string()));
-        }
-        if let Some(l) = limit {
-            params.push(("limit", l.to_string()));
-        }
-
-        let query_string: String = params
-            .iter()
-            .map(|(k, v)| format!("{}={}", k, urlencoding::encode(v)))
-            .collect::<Vec<_>>()
-            .join("&");
-
-        url = format!("{}?{}", url, query_string);
+    /// Searches for markets using the provided parameters.
+    ///
+    /// # Example
+    /// ```no_run
+    /// use parcllabs::{ParclClient, SearchParams, LocationType, SortBy, SortOrder};
+    ///
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let client = ParclClient::new()?;
+    ///
+    /// let params = SearchParams::new()
+    ///     .query("Los Angeles")
+    ///     .state("CA")
+    ///     .location_type(LocationType::City)
+    ///     .sort_by(SortBy::TotalPopulation)
+    ///     .sort_order(SortOrder::Desc)
+    ///     .limit(10);
+    ///
+    /// let markets = client.search().markets(params).await?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn markets(&self, params: SearchParams) -> Result<PaginatedResponse<Market>> {
+        let query = params.to_query_string();
+        let url = format!("{}/v1/search/markets{}", self.base_url, query);
 
         let response = self
             .http

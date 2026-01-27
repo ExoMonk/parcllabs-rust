@@ -2,7 +2,7 @@
 //!
 //! Usage: cargo run --example market_metrics
 
-use parcllabs::{MetricsParams, ParclClient};
+use parcllabs::{MetricsParams, ParclClient, PropertyType, SearchParams};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -10,10 +10,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let client = ParclClient::new()?;
 
     // First, find Los Angeles
-    let markets = client
-        .search()
-        .markets("Los Angeles", Some("CA"), None, Some(1))
-        .await?;
+    let params = SearchParams::new()
+        .query("Los Angeles")
+        .state("CA")
+        .limit(1);
+    let markets = client.search().markets(params).await?;
 
     let la = markets.items.first().ok_or("Los Angeles not found")?;
 
@@ -58,14 +59,64 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         );
     }
 
-    // Get prices
+    // Get prices (all properties)
     let prices = client
         .market_metrics()
-        .housing_event_prices(la.parcl_id, Some(MetricsParams::new().limit(3)))
+        .housing_event_prices(la.parcl_id, Some(MetricsParams::new().limit(1)))
         .await?;
 
-    println!("\nRecent Median Prices:");
-    for item in &prices.items {
+    println!("\nRecent Median Prices (All Properties):");
+    if let Some(item) = prices.items.first() {
+        if let Some(ref price) = item.price {
+            if let Some(ref median) = price.median {
+                println!(
+                    "  {}: Sale ${:.0}k, List ${:.0}k, Rent ${:.0}/mo",
+                    item.date,
+                    median.sales.unwrap_or(0.0) / 1000.0,
+                    median.new_listings_for_sale.unwrap_or(0.0) / 1000.0,
+                    median.new_rental_listings.unwrap_or(0.0)
+                );
+            }
+        }
+    }
+
+    // Get prices filtered by property type
+    let sf_params = MetricsParams::new()
+        .limit(1)
+        .property_type(PropertyType::SingleFamily);
+
+    let sf_prices = client
+        .market_metrics()
+        .housing_event_prices(la.parcl_id, Some(sf_params))
+        .await?;
+
+    println!("\nRecent Median Prices (Single Family Only):");
+    if let Some(item) = sf_prices.items.first() {
+        if let Some(ref price) = item.price {
+            if let Some(ref median) = price.median {
+                println!(
+                    "  {}: Sale ${:.0}k, List ${:.0}k, Rent ${:.0}/mo",
+                    item.date,
+                    median.sales.unwrap_or(0.0) / 1000.0,
+                    median.new_listings_for_sale.unwrap_or(0.0) / 1000.0,
+                    median.new_rental_listings.unwrap_or(0.0)
+                );
+            }
+        }
+    }
+
+    // Compare with Condo prices
+    let condo_params = MetricsParams::new()
+        .limit(1)
+        .property_type(PropertyType::Condo);
+
+    let condo_prices = client
+        .market_metrics()
+        .housing_event_prices(la.parcl_id, Some(condo_params))
+        .await?;
+
+    println!("\nRecent Median Prices (Condo Only):");
+    if let Some(item) = condo_prices.items.first() {
         if let Some(ref price) = item.price {
             if let Some(ref median) = price.median {
                 println!(

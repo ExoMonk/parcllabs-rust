@@ -6,14 +6,15 @@
 //! # Example
 //!
 //! ```no_run
-//! use parcllabs::ParclClient;
+//! use parcllabs::{ParclClient, SearchParams};
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {
 //!     let client = ParclClient::new()?;
 //!
 //!     // Search for markets
-//!     let markets = client.search().markets("Los Angeles", None, None, Some(5)).await?;
+//!     let params = SearchParams::new().query("Los Angeles").limit(5);
+//!     let markets = client.search().markets(params).await?;
 //!     let la_market = &markets.items[0];
 //!     println!("Found: {} (parcl_id: {})", la_market.name, la_market.parcl_id);
 //!
@@ -36,6 +37,7 @@ pub mod error;
 pub mod models;
 
 pub use endpoints::market_metrics::MetricsParams;
+pub use endpoints::search::SearchParams;
 pub use error::{ParclError, Result};
 pub use models::*;
 

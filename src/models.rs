@@ -56,27 +56,99 @@ pub struct Market {
 /// Location type filter for market search.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LocationType {
-    City,
     County,
-    Zip,
-    State,
-    Metro,
-    Region,
-    CensusPlace,
-    National,
+    City,
+    Zip5,
+    Cdp,
+    Village,
+    Town,
+    Cbsa,
+    All,
 }
 
 impl LocationType {
     pub fn as_str(&self) -> &'static str {
         match self {
-            Self::City => "CITY",
             Self::County => "COUNTY",
-            Self::Zip => "ZIP",
-            Self::State => "STATE",
-            Self::Metro => "METRO",
-            Self::Region => "REGION",
-            Self::CensusPlace => "CENSUS_PLACE",
-            Self::National => "NATIONAL",
+            Self::City => "CITY",
+            Self::Zip5 => "ZIP5",
+            Self::Cdp => "CDP",
+            Self::Village => "VILLAGE",
+            Self::Town => "TOWN",
+            Self::Cbsa => "CBSA",
+            Self::All => "ALL",
+        }
+    }
+}
+
+/// US region filter for market search.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum USRegion {
+    EastNorthCentral,
+    EastSouthCentral,
+    MiddleAtlantic,
+    Mountain,
+    NewEngland,
+    Pacific,
+    SouthAtlantic,
+    WestNorthCentral,
+    WestSouthCentral,
+    All,
+}
+
+impl USRegion {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::EastNorthCentral => "EAST_NORTH_CENTRAL",
+            Self::EastSouthCentral => "EAST_SOUTH_CENTRAL",
+            Self::MiddleAtlantic => "MIDDLE_ATLANTIC",
+            Self::Mountain => "MOUNTAIN",
+            Self::NewEngland => "NEW_ENGLAND",
+            Self::Pacific => "PACIFIC",
+            Self::SouthAtlantic => "SOUTH_ATLANTIC",
+            Self::WestNorthCentral => "WEST_NORTH_CENTRAL",
+            Self::WestSouthCentral => "WEST_SOUTH_CENTRAL",
+            Self::All => "ALL",
+        }
+    }
+}
+
+/// Sort field for market search.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SortBy {
+    TotalPopulation,
+    MedianIncome,
+    CaseShiller20Market,
+    CaseShiller10Market,
+    PricefeedMarket,
+    ParclExchangeMarket,
+}
+
+impl SortBy {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::TotalPopulation => "TOTAL_POPULATION",
+            Self::MedianIncome => "MEDIAN_INCOME",
+            Self::CaseShiller20Market => "CASE_SHILLER_20_MARKET",
+            Self::CaseShiller10Market => "CASE_SHILLER_10_MARKET",
+            Self::PricefeedMarket => "PRICEFEED_MARKET",
+            Self::ParclExchangeMarket => "PARCL_EXCHANGE_MARKET",
+        }
+    }
+}
+
+/// Sort order for market search.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SortOrder {
+    Asc,
+    Desc,
+}
+
+impl SortOrder {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Asc => "ASC",
+            Self::Desc => "DESC",
         }
     }
 }

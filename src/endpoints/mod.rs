@@ -4,4 +4,4 @@ pub mod search;
 
 pub use market_metrics::MarketMetricsClient;
 pub use price_feed::PriceFeedClient;
-pub use search::SearchClient;
+pub use search::{SearchClient, SearchParams};
