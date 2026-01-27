@@ -1,6 +1,8 @@
+//! Response types for the Parcl Labs API.
+
 use serde::{Deserialize, Serialize};
 
-/// Paginated response wrapper
+/// Paginated API response wrapper.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct PaginatedResponse<T> {
     pub items: Vec<T>,
@@ -10,6 +12,7 @@ pub struct PaginatedResponse<T> {
     pub links: PaginationLinks,
 }
 
+/// Navigation links for paginated responses.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct PaginationLinks {
     pub first: Option<String>,
@@ -19,12 +22,13 @@ pub struct PaginationLinks {
 }
 
 // ============================================================================
-// Search Models
+// Search
 // ============================================================================
 
-/// Market information returned from search
+/// A housing market returned from search.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Market {
+    /// Unique Parcl market identifier.
     pub parcl_id: i64,
     pub name: String,
     pub state_abbreviation: Option<String>,
@@ -32,11 +36,13 @@ pub struct Market {
     pub location_type: String,
     pub total_population: Option<i64>,
     pub median_income: Option<i64>,
+    /// Whether this market is tradeable on the Parcl exchange.
     pub parcl_exchange_market: Option<i32>,
+    /// Whether this market has price feed data.
     pub pricefeed_market: Option<i32>,
 }
 
-/// Location type filter for market search
+/// Location type filter for market search.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LocationType {
     City,
@@ -52,118 +58,102 @@ pub enum LocationType {
 impl LocationType {
     pub fn as_str(&self) -> &'static str {
         match self {
-            LocationType::City => "CITY",
-            LocationType::County => "COUNTY",
-            LocationType::Zip => "ZIP",
-            LocationType::State => "STATE",
-            LocationType::Metro => "METRO",
-            LocationType::Region => "REGION",
-            LocationType::CensusPlace => "CENSUS_PLACE",
-            LocationType::National => "NATIONAL",
+            Self::City => "CITY",
+            Self::County => "COUNTY",
+            Self::Zip => "ZIP",
+            Self::State => "STATE",
+            Self::Metro => "METRO",
+            Self::Region => "REGION",
+            Self::CensusPlace => "CENSUS_PLACE",
+            Self::National => "NATIONAL",
         }
     }
 }
 
 // ============================================================================
-// Market Metrics Models
+// Market Metrics
 // ============================================================================
 
-/// Housing event counts for a market
+/// Housing transaction and listing counts for a market.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct HousingEventCounts {
     pub parcl_id: i64,
     pub date: String,
-    #[serde(default)]
     pub sales: Option<i64>,
-    #[serde(default)]
     pub new_listings_for_sale: Option<i64>,
-    #[serde(default)]
     pub new_rental_listings: Option<i64>,
 }
 
-/// Housing stock data for a market
+/// Housing unit counts by property type.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct HousingStock {
     pub parcl_id: i64,
     pub date: String,
-    #[serde(default)]
     pub single_family: Option<i64>,
-    #[serde(default)]
     pub condo: Option<i64>,
-    #[serde(default)]
     pub townhouse: Option<i64>,
-    #[serde(default)]
     pub total: Option<i64>,
 }
 
-/// Housing event prices for a market
+/// Median prices for housing events.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct HousingEventPrices {
     pub parcl_id: i64,
     pub date: String,
-    #[serde(default)]
     pub median_sale_price: Option<f64>,
-    #[serde(default)]
     pub median_list_price: Option<f64>,
-    #[serde(default)]
     pub median_rental_price: Option<f64>,
 }
 
 // ============================================================================
-// Price Feed Models
+// Price Feed
 // ============================================================================
 
-/// Price feed data point
+/// Price feed data point for trading.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct PriceFeedEntry {
     pub parcl_id: i64,
     pub date: String,
     pub price: f64,
-    #[serde(default)]
     pub price_feed_type: Option<String>,
 }
 
 // ============================================================================
-// Investor Metrics Models
+// Investor Metrics
 // ============================================================================
 
-/// Investor housing stock ownership
+/// Investor ownership data for a market.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct InvestorHousingStock {
     pub parcl_id: i64,
     pub date: String,
-    #[serde(default)]
     pub investor_owned_units: Option<i64>,
-    #[serde(default)]
     pub investor_ownership_pct: Option<f64>,
 }
 
 // ============================================================================
-// For Sale Metrics Models
+// For Sale Metrics
 // ============================================================================
 
-/// For sale inventory metrics
+/// For-sale inventory metrics.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct ForSaleInventory {
     pub parcl_id: i64,
     pub date: String,
-    #[serde(default)]
     pub total_inventory: Option<i64>,
-    #[serde(default)]
     pub median_days_on_market: Option<i64>,
 }
 
 // ============================================================================
-// Rental Metrics Models
+// Rental Metrics
 // ============================================================================
 
-/// Rental market metrics
+/// Rental market metrics.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct RentalMetrics {
     pub parcl_id: i64,
     pub date: String,
-    #[serde(default)]
+    /// Annual rental income divided by median sale price.
     pub gross_yield: Option<f64>,
-    #[serde(default)]
     pub rental_units_concentration: Option<f64>,
 }
