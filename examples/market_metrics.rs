@@ -51,7 +51,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("  Single Family: {:>10}", latest.single_family.unwrap_or(0));
         println!("  Condo:         {:>10}", latest.condo.unwrap_or(0));
         println!("  Townhouse:     {:>10}", latest.townhouse.unwrap_or(0));
-        println!("  Total:         {:>10}", latest.total.unwrap_or(0));
+        println!("  Other:         {:>10}", latest.other.unwrap_or(0));
+        println!(
+            "  All Properties:{:>10}",
+            latest.all_properties.unwrap_or(0)
+        );
     }
 
     // Get prices
@@ -60,15 +64,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .housing_event_prices(la.parcl_id, Some(MetricsParams::new().limit(3)))
         .await?;
 
-    println!("\nRecent Prices:");
-    for price in &prices.items {
-        println!(
-            "  {}: Sale ${:.0}k, List ${:.0}k, Rent ${:.0}/mo",
-            price.date,
-            price.median_sale_price.unwrap_or(0.0) / 1000.0,
-            price.median_list_price.unwrap_or(0.0) / 1000.0,
-            price.median_rental_price.unwrap_or(0.0)
-        );
+    println!("\nRecent Median Prices:");
+    for item in &prices.items {
+        if let Some(ref price) = item.price {
+            if let Some(ref median) = price.median {
+                println!(
+                    "  {}: Sale ${:.0}k, List ${:.0}k, Rent ${:.0}/mo",
+                    item.date,
+                    median.sales.unwrap_or(0.0) / 1000.0,
+                    median.new_listings_for_sale.unwrap_or(0.0) / 1000.0,
+                    median.new_rental_listings.unwrap_or(0.0)
+                );
+            }
+        }
     }
 
     Ok(())

@@ -1,7 +1,9 @@
 //! Market metrics endpoints for housing data retrieval.
 
 use crate::error::{ParclError, Result};
-use crate::models::{HousingEventCounts, HousingEventPrices, HousingStock, MetricsResponse};
+use crate::models::{
+    HousingEventCounts, HousingEventPrices, HousingStock, MetricsResponse, PropertyType,
+};
 use reqwest::Client;
 
 /// Client for market metrics API endpoints.
@@ -18,6 +20,7 @@ pub struct MetricsParams {
     pub offset: Option<u32>,
     pub start_date: Option<String>,
     pub end_date: Option<String>,
+    pub property_type: Option<PropertyType>,
 }
 
 impl MetricsParams {
@@ -45,6 +48,12 @@ impl MetricsParams {
         self
     }
 
+    /// Filter by property type (single family, condo, townhouse, etc.)
+    pub fn property_type(mut self, property_type: PropertyType) -> Self {
+        self.property_type = Some(property_type);
+        self
+    }
+
     pub(crate) fn to_query_string(&self) -> String {
         let mut params = Vec::new();
 
@@ -59,6 +68,9 @@ impl MetricsParams {
         }
         if let Some(ref e) = self.end_date {
             params.push(format!("end_date={}", e));
+        }
+        if let Some(pt) = self.property_type {
+            params.push(format!("property_type={}", pt.as_str()));
         }
 
         if params.is_empty() {

@@ -81,6 +81,29 @@ impl LocationType {
     }
 }
 
+/// Property type filter for market metrics.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum PropertyType {
+    SingleFamily,
+    Condo,
+    Townhouse,
+    Other,
+    #[default]
+    AllProperties,
+}
+
+impl PropertyType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::SingleFamily => "SINGLE_FAMILY",
+            Self::Condo => "CONDO",
+            Self::Townhouse => "TOWNHOUSE",
+            Self::Other => "OTHER",
+            Self::AllProperties => "ALL_PROPERTIES",
+        }
+    }
+}
+
 // ============================================================================
 // Market Metrics
 // ============================================================================
