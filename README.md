@@ -56,13 +56,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ## Authentication
 
-- API key at [app.parcllabs.com](https://app.parcllabs.com/data-vault).
+Get your API key at [app.parcllabs.com](https://app.parcllabs.com/data-vault).
+
+```bash
+# Copy the example and add your key
+cp .env.example .env
+```
+
+Or export directly:
 
 ```bash
 export PARCL_LABS_API_KEY=your_api_key
 ```
 
-Or pass it directly:
+Or pass it in code:
 
 ```rust
 let client = ParclClient::with_api_key("your_api_key");
@@ -139,8 +146,9 @@ let params = MetricsParams::new()
 ## Examples
 
 ```bash
-# Set your API key
-export PARCL_LABS_API_KEY=your_key
+# Set up your .env file
+cp .env.example .env
+# Edit .env with your API key
 
 # Run examples
 cargo run --example search_markets
