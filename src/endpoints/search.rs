@@ -68,7 +68,6 @@ impl<'a> SearchClient<'a> {
         let data: PaginatedResponse<Market> = response.json().await?;
         Ok(data)
     }
-
 }
 
 mod urlencoding {

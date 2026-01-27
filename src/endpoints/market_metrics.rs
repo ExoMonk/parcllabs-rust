@@ -120,10 +120,7 @@ impl<'a> MarketMetricsClient<'a> {
         self.fetch(&url).await
     }
 
-    async fn fetch<T: serde::de::DeserializeOwned>(
-        &self,
-        url: &str,
-    ) -> Result<MetricsResponse<T>> {
+    async fn fetch<T: serde::de::DeserializeOwned>(&self, url: &str) -> Result<MetricsResponse<T>> {
         let response = self
             .http
             .get(url)

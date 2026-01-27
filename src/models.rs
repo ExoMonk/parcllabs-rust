@@ -101,16 +101,33 @@ pub struct HousingStock {
     pub single_family: Option<i64>,
     pub condo: Option<i64>,
     pub townhouse: Option<i64>,
-    pub total: Option<i64>,
+    pub other: Option<i64>,
+    pub all_properties: Option<i64>,
 }
 
-/// Median prices for housing events.
+/// Housing event prices with statistical breakdowns.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct HousingEventPrices {
     pub date: String,
-    pub median_sale_price: Option<f64>,
-    pub median_list_price: Option<f64>,
-    pub median_rental_price: Option<f64>,
+    pub price: Option<PriceStats>,
+    pub price_per_square_foot: Option<PriceStats>,
+}
+
+/// Price statistics across different event types.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct PriceStats {
+    pub median: Option<EventPrices>,
+    pub standard_deviation: Option<EventPrices>,
+    pub percentile_20th: Option<EventPrices>,
+    pub percentile_80th: Option<EventPrices>,
+}
+
+/// Price values for each event type.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct EventPrices {
+    pub sales: Option<f64>,
+    pub new_listings_for_sale: Option<f64>,
+    pub new_rental_listings: Option<f64>,
 }
 
 // ============================================================================
