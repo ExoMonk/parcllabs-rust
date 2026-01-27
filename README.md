@@ -238,7 +238,6 @@ cargo run --example market_metrics
 ### Other TODOs
 
 - [ ] CI/CD pipeline
-- [ ] Publish to crates.io
 - [ ] Rate limiting / retry logic
 - [ ] Response caching
 - [ ] Streaming for large datasets
