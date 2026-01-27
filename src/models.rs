@@ -24,7 +24,7 @@ pub struct MetricsResponse<T> {
 }
 
 /// Navigation links for paginated responses.
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
 pub struct PaginationLinks {
     pub first: Option<String>,
     pub next: Option<String>,
@@ -47,10 +47,22 @@ pub struct Market {
     pub location_type: String,
     pub total_population: Option<i64>,
     pub median_income: Option<i64>,
-    /// Whether this market is tradeable on the Parcl exchange.
+    /// Whether this market is tradeable on the Parcl exchange (0 or 1).
     pub parcl_exchange_market: Option<i32>,
-    /// Whether this market has price feed data.
+    /// Whether this market has price feed data (0 or 1).
     pub pricefeed_market: Option<i32>,
+}
+
+impl Market {
+    /// Returns true if this market is tradeable on the Parcl exchange.
+    pub fn is_exchange_market(&self) -> bool {
+        self.parcl_exchange_market == Some(1)
+    }
+
+    /// Returns true if this market has price feed data.
+    pub fn has_price_feed(&self) -> bool {
+        self.pricefeed_market == Some(1)
+    }
 }
 
 /// Location type filter for market search.
@@ -78,6 +90,12 @@ impl LocationType {
             Self::Cbsa => "CBSA",
             Self::All => "ALL",
         }
+    }
+}
+
+impl std::fmt::Display for LocationType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
     }
 }
 
@@ -113,6 +131,12 @@ impl USRegion {
     }
 }
 
+impl std::fmt::Display for USRegion {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
 /// Sort field for market search.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SortBy {
@@ -137,6 +161,12 @@ impl SortBy {
     }
 }
 
+impl std::fmt::Display for SortBy {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
 /// Sort order for market search.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SortOrder {
@@ -150,6 +180,12 @@ impl SortOrder {
             Self::Asc => "ASC",
             Self::Desc => "DESC",
         }
+    }
+}
+
+impl std::fmt::Display for SortOrder {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
     }
 }
 
@@ -173,6 +209,12 @@ impl PropertyType {
             Self::Other => "OTHER",
             Self::AllProperties => "ALL_PROPERTIES",
         }
+    }
+}
+
+impl std::fmt::Display for PropertyType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
     }
 }
 

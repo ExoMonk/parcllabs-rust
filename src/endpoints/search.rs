@@ -98,7 +98,7 @@ impl SearchParams {
         self
     }
 
-    fn to_query_string(&self) -> String {
+    pub(crate) fn to_query_string(&self) -> String {
         let mut params = Vec::new();
 
         if let Some(ref q) = self.query {

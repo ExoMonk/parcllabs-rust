@@ -27,15 +27,31 @@ impl<'a> PriceFeedClient<'a> {
         parcl_id: i64,
         params: Option<MetricsParams>,
     ) -> Result<MetricsResponse<PriceFeedEntry>> {
-        let query = params.map(|p| p.to_query_string()).unwrap_or_default();
+        let params = params.unwrap_or_default();
+        let auto_paginate = params.auto_paginate;
+        let query = params.to_query_string();
         let url = format!(
             "{}/v1/price_feed/{}/history{}",
             self.base_url, parcl_id, query
         );
 
+        let mut response = self.fetch_page(&url).await?;
+
+        if auto_paginate {
+            while let Some(ref next_url) = response.links.next {
+                let next_page = self.fetch_page(next_url).await?;
+                response.items.extend(next_page.items);
+                response.links = next_page.links;
+            }
+        }
+
+        Ok(response)
+    }
+
+    async fn fetch_page(&self, url: &str) -> Result<MetricsResponse<PriceFeedEntry>> {
         let response = self
             .http
-            .get(&url)
+            .get(url)
             .header("Authorization", self.api_key)
             .send()
             .await?;

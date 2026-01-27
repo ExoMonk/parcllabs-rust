@@ -30,7 +30,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             market.median_income.unwrap_or(0)
         );
 
-        if market.pricefeed_market == Some(1) {
+        if market.has_price_feed() {
             println!("              ^ Price feed available");
         }
     }
@@ -108,7 +108,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         all_results.total
     );
     for (i, market) in all_results.items.iter().enumerate() {
-        println!("  {}. {} (parcl_id: {})", i + 1, market.name, market.parcl_id);
+        println!(
+            "  {}. {} (parcl_id: {})",
+            i + 1,
+            market.name,
+            market.parcl_id
+        );
     }
 
     Ok(())
