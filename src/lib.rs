@@ -49,6 +49,7 @@ const DEFAULT_BASE_URL: &str = "https://api.parcllabs.com";
 const ENV_API_KEY: &str = "PARCL_LABS_API_KEY";
 
 /// Main client for interacting with the Parcl Labs API.
+#[derive(Debug)]
 pub struct ParclClient {
     http: Client,
     base_url: String,
@@ -97,5 +98,76 @@ impl ParclClient {
     /// Returns a client for price feed endpoints.
     pub fn price_feed(&self) -> PriceFeedClient<'_> {
         PriceFeedClient::new(&self.http, &self.base_url, &self.api_key)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn client_with_api_key() {
+        let client = ParclClient::with_api_key("test-key");
+        assert_eq!(client.api_key, "test-key");
+        assert_eq!(client.base_url, DEFAULT_BASE_URL);
+    }
+
+    #[test]
+    fn client_with_config() {
+        let client = ParclClient::with_config("my-key", "https://custom.api.com");
+        assert_eq!(client.api_key, "my-key");
+        assert_eq!(client.base_url, "https://custom.api.com");
+    }
+
+    #[test]
+    fn client_new_missing_env() {
+        // Temporarily unset env var if it exists
+        let original = env::var(ENV_API_KEY).ok();
+        env::remove_var(ENV_API_KEY);
+
+        let result = ParclClient::new();
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), ParclError::MissingApiKey));
+
+        // Restore original value
+        if let Some(val) = original {
+            env::set_var(ENV_API_KEY, val);
+        }
+    }
+
+    #[test]
+    fn client_new_with_env() {
+        let original = env::var(ENV_API_KEY).ok();
+        env::set_var(ENV_API_KEY, "env-test-key");
+
+        let result = ParclClient::new();
+        assert!(result.is_ok());
+        let client = result.unwrap();
+        assert_eq!(client.api_key, "env-test-key");
+
+        // Restore original value
+        if let Some(val) = original {
+            env::set_var(ENV_API_KEY, val);
+        } else {
+            env::remove_var(ENV_API_KEY);
+        }
+    }
+
+    #[test]
+    fn client_returns_search_client() {
+        let client = ParclClient::with_api_key("test");
+        let _search = client.search();
+    }
+
+    #[test]
+    fn client_returns_market_metrics_client() {
+        let client = ParclClient::with_api_key("test");
+        let _metrics = client.market_metrics();
+    }
+
+    #[test]
+    fn client_returns_price_feed_client() {
+        let client = ParclClient::with_api_key("test");
+        let _feed = client.price_feed();
     }
 }

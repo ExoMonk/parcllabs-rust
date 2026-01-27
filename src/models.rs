@@ -315,3 +315,159 @@ pub struct RentalMetrics {
     pub gross_yield: Option<f64>,
     pub rental_units_concentration: Option<f64>,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn sample_market(exchange: Option<i32>, pricefeed: Option<i32>) -> Market {
+        Market {
+            parcl_id: 123,
+            name: "Test Market".into(),
+            state_abbreviation: Some("CA".into()),
+            state_fips_code: Some("06".into()),
+            location_type: "CITY".into(),
+            total_population: Some(100_000),
+            median_income: Some(75_000),
+            parcl_exchange_market: exchange,
+            pricefeed_market: pricefeed,
+        }
+    }
+
+    #[test]
+    fn market_is_exchange_market() {
+        assert!(sample_market(Some(1), None).is_exchange_market());
+        assert!(!sample_market(Some(0), None).is_exchange_market());
+        assert!(!sample_market(None, None).is_exchange_market());
+    }
+
+    #[test]
+    fn market_has_price_feed() {
+        assert!(sample_market(None, Some(1)).has_price_feed());
+        assert!(!sample_market(None, Some(0)).has_price_feed());
+        assert!(!sample_market(None, None).has_price_feed());
+    }
+
+    #[test]
+    fn location_type_as_str() {
+        assert_eq!(LocationType::County.as_str(), "COUNTY");
+        assert_eq!(LocationType::City.as_str(), "CITY");
+        assert_eq!(LocationType::Zip5.as_str(), "ZIP5");
+        assert_eq!(LocationType::Cbsa.as_str(), "CBSA");
+        assert_eq!(LocationType::All.as_str(), "ALL");
+    }
+
+    #[test]
+    fn location_type_display() {
+        assert_eq!(format!("{}", LocationType::City), "CITY");
+        assert_eq!(format!("{}", LocationType::County), "COUNTY");
+    }
+
+    #[test]
+    fn us_region_as_str() {
+        assert_eq!(USRegion::Pacific.as_str(), "PACIFIC");
+        assert_eq!(USRegion::Mountain.as_str(), "MOUNTAIN");
+        assert_eq!(USRegion::NewEngland.as_str(), "NEW_ENGLAND");
+        assert_eq!(USRegion::EastNorthCentral.as_str(), "EAST_NORTH_CENTRAL");
+    }
+
+    #[test]
+    fn sort_by_as_str() {
+        assert_eq!(SortBy::TotalPopulation.as_str(), "TOTAL_POPULATION");
+        assert_eq!(SortBy::MedianIncome.as_str(), "MEDIAN_INCOME");
+        assert_eq!(SortBy::PricefeedMarket.as_str(), "PRICEFEED_MARKET");
+    }
+
+    #[test]
+    fn sort_order_as_str() {
+        assert_eq!(SortOrder::Asc.as_str(), "ASC");
+        assert_eq!(SortOrder::Desc.as_str(), "DESC");
+    }
+
+    #[test]
+    fn property_type_as_str() {
+        assert_eq!(PropertyType::SingleFamily.as_str(), "SINGLE_FAMILY");
+        assert_eq!(PropertyType::Condo.as_str(), "CONDO");
+        assert_eq!(PropertyType::AllProperties.as_str(), "ALL_PROPERTIES");
+    }
+
+    #[test]
+    fn property_type_default() {
+        assert_eq!(PropertyType::default(), PropertyType::AllProperties);
+    }
+
+    #[test]
+    fn pagination_links_default() {
+        let links = PaginationLinks::default();
+        assert!(links.first.is_none());
+        assert!(links.next.is_none());
+        assert!(links.prev.is_none());
+        assert!(links.last.is_none());
+    }
+
+    #[test]
+    fn market_deserialize() {
+        let json = r#"{
+            "parcl_id": 2900078,
+            "name": "Los Angeles",
+            "state_abbreviation": "CA",
+            "state_fips_code": "06",
+            "location_type": "CBSA",
+            "total_population": 13000000,
+            "median_income": 89000,
+            "parcl_exchange_market": 1,
+            "pricefeed_market": 1
+        }"#;
+
+        let market: Market = serde_json::from_str(json).unwrap();
+        assert_eq!(market.parcl_id, 2900078);
+        assert_eq!(market.name, "Los Angeles");
+        assert!(market.is_exchange_market());
+        assert!(market.has_price_feed());
+    }
+
+    #[test]
+    fn housing_event_counts_deserialize() {
+        let json = r#"{
+            "date": "2024-01-01",
+            "sales": 1500,
+            "new_listings_for_sale": 2000,
+            "new_rental_listings": 500
+        }"#;
+
+        let counts: HousingEventCounts = serde_json::from_str(json).unwrap();
+        assert_eq!(counts.date, "2024-01-01");
+        assert_eq!(counts.sales, Some(1500));
+        assert_eq!(counts.new_listings_for_sale, Some(2000));
+    }
+
+    #[test]
+    fn housing_stock_deserialize() {
+        let json = r#"{
+            "date": "2024-01-01",
+            "single_family": 100000,
+            "condo": 50000,
+            "townhouse": 10000,
+            "other": 5000,
+            "all_properties": 165000
+        }"#;
+
+        let stock: HousingStock = serde_json::from_str(json).unwrap();
+        assert_eq!(stock.all_properties, Some(165000));
+        assert_eq!(stock.single_family, Some(100000));
+    }
+
+    #[test]
+    fn price_feed_entry_deserialize() {
+        let json = r#"{
+            "date": "2024-01-01",
+            "price": 750000.50,
+            "price_feed_type": "daily"
+        }"#;
+
+        let entry: PriceFeedEntry = serde_json::from_str(json).unwrap();
+        assert_eq!(entry.date, "2024-01-01");
+        assert!((entry.price - 750000.50).abs() < f64::EPSILON);
+        assert_eq!(entry.price_feed_type, Some("daily".into()));
+    }
+}

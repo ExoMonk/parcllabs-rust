@@ -191,3 +191,99 @@ impl<'a> MarketMetricsClient<'a> {
         Ok(data)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::PropertyType;
+
+    #[test]
+    fn metrics_params_default() {
+        let params = MetricsParams::new();
+        assert!(params.limit.is_none());
+        assert!(params.offset.is_none());
+        assert!(params.start_date.is_none());
+        assert!(params.end_date.is_none());
+        assert!(params.property_type.is_none());
+        assert!(!params.auto_paginate);
+    }
+
+    #[test]
+    fn metrics_params_builder() {
+        let params = MetricsParams::new()
+            .limit(10)
+            .offset(20)
+            .start_date("2024-01-01")
+            .end_date("2024-12-31")
+            .property_type(PropertyType::SingleFamily)
+            .auto_paginate(true);
+
+        assert_eq!(params.limit, Some(10));
+        assert_eq!(params.offset, Some(20));
+        assert_eq!(params.start_date, Some("2024-01-01".into()));
+        assert_eq!(params.end_date, Some("2024-12-31".into()));
+        assert_eq!(params.property_type, Some(PropertyType::SingleFamily));
+        assert!(params.auto_paginate);
+    }
+
+    #[test]
+    fn metrics_params_empty_query_string() {
+        let params = MetricsParams::new();
+        assert_eq!(params.to_query_string(), "");
+    }
+
+    #[test]
+    fn metrics_params_query_string_limit() {
+        let params = MetricsParams::new().limit(5);
+        assert_eq!(params.to_query_string(), "?limit=5");
+    }
+
+    #[test]
+    fn metrics_params_query_string_offset() {
+        let params = MetricsParams::new().offset(10);
+        assert_eq!(params.to_query_string(), "?offset=10");
+    }
+
+    #[test]
+    fn metrics_params_query_string_dates() {
+        let params = MetricsParams::new()
+            .start_date("2024-01-01")
+            .end_date("2024-06-30");
+
+        let qs = params.to_query_string();
+        assert!(qs.contains("start_date=2024-01-01"));
+        assert!(qs.contains("end_date=2024-06-30"));
+    }
+
+    #[test]
+    fn metrics_params_query_string_property_type() {
+        let params = MetricsParams::new().property_type(PropertyType::Condo);
+        assert_eq!(params.to_query_string(), "?property_type=CONDO");
+    }
+
+    #[test]
+    fn metrics_params_query_string_all_fields() {
+        let params = MetricsParams::new()
+            .limit(10)
+            .offset(5)
+            .start_date("2024-01-01")
+            .end_date("2024-12-31")
+            .property_type(PropertyType::Townhouse);
+
+        let qs = params.to_query_string();
+        assert!(qs.starts_with('?'));
+        assert!(qs.contains("limit=10"));
+        assert!(qs.contains("offset=5"));
+        assert!(qs.contains("start_date=2024-01-01"));
+        assert!(qs.contains("end_date=2024-12-31"));
+        assert!(qs.contains("property_type=TOWNHOUSE"));
+    }
+
+    #[test]
+    fn metrics_params_auto_paginate_not_in_query() {
+        let params = MetricsParams::new().limit(5).auto_paginate(true);
+        let qs = params.to_query_string();
+        assert!(!qs.contains("auto_paginate"));
+        assert!(qs.contains("limit=5"));
+    }
+}

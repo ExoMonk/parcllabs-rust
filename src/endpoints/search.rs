@@ -228,3 +228,108 @@ mod urlencoding {
         encoded
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::{LocationType, SortBy, SortOrder, USRegion};
+
+    #[test]
+    fn search_params_default() {
+        let params = SearchParams::new();
+        assert!(params.query.is_none());
+        assert!(params.location_type.is_none());
+        assert!(!params.auto_paginate);
+    }
+
+    #[test]
+    fn search_params_builder() {
+        let params = SearchParams::new()
+            .query("Los Angeles")
+            .state("CA")
+            .location_type(LocationType::City)
+            .limit(10)
+            .auto_paginate(true);
+
+        assert_eq!(params.query, Some("Los Angeles".into()));
+        assert_eq!(params.state_abbreviation, Some("CA".into()));
+        assert_eq!(params.location_type, Some(LocationType::City));
+        assert_eq!(params.limit, Some(10));
+        assert!(params.auto_paginate);
+    }
+
+    #[test]
+    fn search_params_state_uppercase() {
+        let params = SearchParams::new().state("ca");
+        assert_eq!(params.state_abbreviation, Some("CA".into()));
+    }
+
+    #[test]
+    fn search_params_empty_query_string() {
+        let params = SearchParams::new();
+        assert_eq!(params.to_query_string(), "");
+    }
+
+    #[test]
+    fn search_params_query_string_single() {
+        let params = SearchParams::new().query("test");
+        assert_eq!(params.to_query_string(), "?query=test");
+    }
+
+    #[test]
+    fn search_params_query_string_multiple() {
+        let params = SearchParams::new()
+            .query("San Francisco")
+            .state("CA")
+            .limit(5);
+
+        let qs = params.to_query_string();
+        assert!(qs.starts_with('?'));
+        assert!(qs.contains("query=San%20Francisco"));
+        assert!(qs.contains("state_abbreviation=CA"));
+        assert!(qs.contains("limit=5"));
+    }
+
+    #[test]
+    fn search_params_query_string_all_fields() {
+        let params = SearchParams::new()
+            .query("test")
+            .location_type(LocationType::City)
+            .region(USRegion::Pacific)
+            .state("CA")
+            .state_fips_code("06")
+            .parcl_id(123)
+            .geoid("geo123")
+            .sort_by(SortBy::TotalPopulation)
+            .sort_order(SortOrder::Desc)
+            .limit(10);
+
+        let qs = params.to_query_string();
+        assert!(qs.contains("query=test"));
+        assert!(qs.contains("location_type=CITY"));
+        assert!(qs.contains("region=PACIFIC"));
+        assert!(qs.contains("state_abbreviation=CA"));
+        assert!(qs.contains("state_fips_code=06"));
+        assert!(qs.contains("parcl_id=123"));
+        assert!(qs.contains("geoid=geo123"));
+        assert!(qs.contains("sort_by=TOTAL_POPULATION"));
+        assert!(qs.contains("sort_order=DESC"));
+        assert!(qs.contains("limit=10"));
+    }
+
+    #[test]
+    fn urlencoding_basic() {
+        assert_eq!(urlencoding::encode("hello"), "hello");
+        assert_eq!(urlencoding::encode("hello world"), "hello%20world");
+        assert_eq!(urlencoding::encode("a+b"), "a%2Bb");
+        assert_eq!(urlencoding::encode("test@example"), "test%40example");
+    }
+
+    #[test]
+    fn urlencoding_preserves_safe_chars() {
+        assert_eq!(
+            urlencoding::encode("abc-123_456.789~xyz"),
+            "abc-123_456.789~xyz"
+        );
+    }
+}
