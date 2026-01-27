@@ -1,5 +1,9 @@
 # parcllabs-rust
 
+[![Crates.io](https://img.shields.io/crates/v/parcllabs.svg)](https://crates.io/crates/parcllabs)
+[![Documentation](https://docs.rs/parcllabs/badge.svg)](https://docs.rs/parcllabs)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 Rust SDK for the [Parcl Labs API](https://docs.parcllabs.com/) - U.S. housing market data and analytics.
 
 ## Installation
@@ -8,8 +12,15 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-parcllabs = { git = "https://github.com/ExoMonk/parcllabs-rust" }
+parcllabs = "0.1"
 tokio = { version = "1", features = ["full"] }
+```
+
+Or use `cargo add`:
+
+```bash
+cargo add parcllabs
+cargo add tokio --features full
 ```
 
 ## Quick Start
