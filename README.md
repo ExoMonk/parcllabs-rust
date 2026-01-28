@@ -294,8 +294,64 @@ println!("Fetched {} months of data", history.items.len());
 export PARCL_LABS_API_KEY=your_api_key
 
 # Run examples
-cargo run --example search_markets
-cargo run --example market_metrics
+cargo run --example search_markets        # Find markets by name/location
+cargo run --example market_metrics        # Housing prices, sales, inventory
+cargo run --example investor_activity     # Track investor buy/sell trends
+cargo run --example institutional_ownership  # Analyze ownership rates
+```
+
+### Example: Investor Activity Analysis
+
+Track where institutional investors are buying or selling:
+
+```rust
+use parcllabs::{ParclClient, InvestorMetricsParams};
+
+let client = ParclClient::new()?;
+
+// Get purchase-to-sale ratio (>1 = net buyer, <1 = net seller)
+let ratios = client.investor_metrics()
+    .purchase_to_sale_ratio(parcl_id, None)
+    .await?;
+
+for item in &ratios.items {
+    let ratio = item.purchase_to_sale_ratio.unwrap_or(0.0);
+    let status = if ratio > 1.0 { "Net Buyer" } else { "Net Seller" };
+    println!("{}: {:.2} ({})", item.date, ratio, status);
+}
+
+// Get rolling listing counts
+let listings = client.investor_metrics()
+    .new_listings_for_sale_rolling_counts(parcl_id, None)
+    .await?;
+```
+
+### Example: Institutional Ownership
+
+Compare investor ownership across markets:
+
+```rust
+// Get ownership percentage
+let ownership = client.investor_metrics()
+    .housing_stock_ownership(parcl_id, None)
+    .await?;
+
+if let Some(latest) = ownership.items.first() {
+    println!("Investor owned: {:.1}% ({} units)",
+        latest.investor_owned_pct.unwrap_or(0.0),
+        latest.investor_owned_count.unwrap_or(0)
+    );
+}
+
+// Track investor transactions
+let events = client.investor_metrics()
+    .housing_event_counts(parcl_id, None)
+    .await?;
+
+if let Some(ev) = events.items.first() {
+    let net = ev.acquisitions.unwrap_or(0) - ev.dispositions.unwrap_or(0);
+    println!("Net activity: {} properties", net);
+}
 ```
 
 ---
