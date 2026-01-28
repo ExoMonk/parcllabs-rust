@@ -267,6 +267,36 @@ pub struct EventPrices {
     pub new_rental_listings: Option<f64>,
 }
 
+/// All-cash transaction metrics.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct AllCash {
+    pub date: String,
+    /// Count of all-cash arms-length sales.
+    pub count_sales: Option<i64>,
+    /// Percentage of arms-length sales completed as all-cash.
+    pub pct_sales: Option<f64>,
+    /// Count of all-cash transfers across all sale types.
+    pub count_transfers: Option<i64>,
+    /// Percentage of transfers completed as all-cash.
+    pub pct_transfers: Option<f64>,
+}
+
+/// Physical attributes of properties involved in housing events.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct HousingEventPropertyAttributes {
+    pub date: String,
+    /// Median bedroom count.
+    pub beds: Option<i64>,
+    /// Median bathroom count.
+    pub baths: Option<f64>,
+    /// Median square footage.
+    pub sqft: Option<i64>,
+    /// Median lot size in square feet.
+    pub lot_size: Option<i64>,
+    /// Median year built.
+    pub year_built: Option<i64>,
+}
+
 // ============================================================================
 // Price Feed
 // ============================================================================
@@ -469,5 +499,79 @@ mod tests {
         assert_eq!(entry.date, "2024-01-01");
         assert!((entry.price - 750000.50).abs() < f64::EPSILON);
         assert_eq!(entry.price_feed_type, Some("daily".into()));
+    }
+
+    #[test]
+    fn all_cash_deserialize() {
+        let json = r#"{
+            "date": "2024-01-01",
+            "count_sales": 150,
+            "pct_sales": 28.5,
+            "count_transfers": 200,
+            "pct_transfers": 32.1
+        }"#;
+
+        let all_cash: AllCash = serde_json::from_str(json).unwrap();
+        assert_eq!(all_cash.date, "2024-01-01");
+        assert_eq!(all_cash.count_sales, Some(150));
+        assert!((all_cash.pct_sales.unwrap() - 28.5).abs() < f64::EPSILON);
+        assert_eq!(all_cash.count_transfers, Some(200));
+        assert!((all_cash.pct_transfers.unwrap() - 32.1).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn all_cash_deserialize_with_nulls() {
+        let json = r#"{
+            "date": "2024-01-01",
+            "count_sales": null,
+            "pct_sales": null,
+            "count_transfers": null,
+            "pct_transfers": null
+        }"#;
+
+        let all_cash: AllCash = serde_json::from_str(json).unwrap();
+        assert_eq!(all_cash.date, "2024-01-01");
+        assert!(all_cash.count_sales.is_none());
+        assert!(all_cash.pct_sales.is_none());
+    }
+
+    #[test]
+    fn housing_event_property_attributes_deserialize() {
+        let json = r#"{
+            "date": "2024-01-01",
+            "beds": 3,
+            "baths": 2.5,
+            "sqft": 1850,
+            "lot_size": 6500,
+            "year_built": 1995
+        }"#;
+
+        let attrs: HousingEventPropertyAttributes = serde_json::from_str(json).unwrap();
+        assert_eq!(attrs.date, "2024-01-01");
+        assert_eq!(attrs.beds, Some(3));
+        assert!((attrs.baths.unwrap() - 2.5).abs() < f64::EPSILON);
+        assert_eq!(attrs.sqft, Some(1850));
+        assert_eq!(attrs.lot_size, Some(6500));
+        assert_eq!(attrs.year_built, Some(1995));
+    }
+
+    #[test]
+    fn housing_event_property_attributes_deserialize_with_nulls() {
+        let json = r#"{
+            "date": "2024-01-01",
+            "beds": 4,
+            "baths": null,
+            "sqft": 2000,
+            "lot_size": null,
+            "year_built": null
+        }"#;
+
+        let attrs: HousingEventPropertyAttributes = serde_json::from_str(json).unwrap();
+        assert_eq!(attrs.date, "2024-01-01");
+        assert_eq!(attrs.beds, Some(4));
+        assert!(attrs.baths.is_none());
+        assert_eq!(attrs.sqft, Some(2000));
+        assert!(attrs.lot_size.is_none());
+        assert!(attrs.year_built.is_none());
     }
 }

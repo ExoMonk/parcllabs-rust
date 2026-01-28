@@ -2,7 +2,8 @@
 
 use crate::error::{ParclError, Result};
 use crate::models::{
-    HousingEventCounts, HousingEventPrices, HousingStock, MetricsResponse, PropertyType,
+    AllCash, HousingEventCounts, HousingEventPrices, HousingEventPropertyAttributes, HousingStock,
+    MetricsResponse, PropertyType,
 };
 use reqwest::Client;
 
@@ -144,6 +145,38 @@ impl<'a> MarketMetricsClient<'a> {
         let query = params.to_query_string();
         let url = format!(
             "{}/v1/market_metrics/{}/housing_event_prices{}",
+            self.base_url, parcl_id, query
+        );
+        self.fetch_with_pagination(&url, auto_paginate).await
+    }
+
+    /// Retrieves all-cash transaction counts and percentages.
+    pub async fn all_cash(
+        &self,
+        parcl_id: i64,
+        params: Option<MetricsParams>,
+    ) -> Result<MetricsResponse<AllCash>> {
+        let params = params.unwrap_or_default();
+        let auto_paginate = params.auto_paginate;
+        let query = params.to_query_string();
+        let url = format!(
+            "{}/v1/market_metrics/{}/all_cash{}",
+            self.base_url, parcl_id, query
+        );
+        self.fetch_with_pagination(&url, auto_paginate).await
+    }
+
+    /// Retrieves physical attributes of properties in housing events.
+    pub async fn housing_event_property_attributes(
+        &self,
+        parcl_id: i64,
+        params: Option<MetricsParams>,
+    ) -> Result<MetricsResponse<HousingEventPropertyAttributes>> {
+        let params = params.unwrap_or_default();
+        let auto_paginate = params.auto_paginate;
+        let query = params.to_query_string();
+        let url = format!(
+            "{}/v1/market_metrics/{}/housing_event_property_attributes{}",
             self.base_url, parcl_id, query
         );
         self.fetch_with_pagination(&url, auto_paginate).await
