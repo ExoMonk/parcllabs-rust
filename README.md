@@ -365,10 +365,11 @@ println!("Fetched {} months of data", history.items.len());
 export PARCL_LABS_API_KEY=your_api_key
 
 # Run examples
-cargo run --example search_markets        # Find markets by name/location
-cargo run --example market_metrics        # Housing prices, sales, inventory
-cargo run --example investor_activity     # Track investor buy/sell trends
+cargo run --example search_markets           # Find markets by name/location
+cargo run --example market_metrics           # Housing prices, sales, inventory
+cargo run --example investor_activity        # Track investor buy/sell trends
 cargo run --example institutional_ownership  # Analyze ownership rates
+cargo run --example for_sale_market_analysis # Inventory & price drop analysis
 ```
 
 ### Example: Investor Activity Analysis

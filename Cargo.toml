@@ -37,3 +37,7 @@ path = "examples/investor_activity.rs"
 [[example]]
 name = "institutional_ownership"
 path = "examples/institutional_ownership.rs"
+
+[[example]]
+name = "for_sale_market_analysis"
+path = "examples/for_sale_market_analysis.rs"
