@@ -2,7 +2,7 @@
 name = "parcllabs"
 version = "0.1.1"
 edition = "2021"
-rust-version = "1.75.0"
+rust-version = "1.83.0"
 description = "Rust SDK for the Parcl Labs API - Real-time U.S. housing market data"
 license = "MIT"
 repository = "https://github.com/ExoMonk/parcllabs-rust"

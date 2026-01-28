@@ -4,7 +4,7 @@
 [![Crates.io](https://img.shields.io/crates/v/parcllabs.svg)](https://crates.io/crates/parcllabs)
 [![Documentation](https://docs.rs/parcllabs/badge.svg)](https://docs.rs/parcllabs)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![MSRV](https://img.shields.io/badge/MSRV-1.75.0-blue.svg)](https://blog.rust-lang.org/2023/12/28/Rust-1.75.0.html)
+[![MSRV](https://img.shields.io/badge/MSRV-1.83.0-blue.svg)](https://blog.rust-lang.org/2024/11/28/Rust-1.83.0.html)
 
 Rust SDK for the [Parcl Labs API](https://docs.parcllabs.com/) - Real-time U.S. housing market data and analytics covering 70,000+ markets.
 
