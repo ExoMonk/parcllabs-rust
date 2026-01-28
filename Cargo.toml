@@ -1,12 +1,14 @@
 [package]
 name = "parcllabs"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
-description = "Rust SDK for the Parcl Labs API"
+rust-version = "1.83.0"
+description = "Rust SDK for the Parcl Labs API - Real-time U.S. housing market data"
 license = "MIT"
 repository = "https://github.com/ExoMonk/parcllabs-rust"
+documentation = "https://docs.rs/parcllabs"
 keywords = ["parcl", "real-estate", "housing", "api", "sdk"]
-categories = ["api-bindings", "web-programming"]
+categories = ["blockchain", "api-bindings", "web-programming"]
 readme = "README.md"
 
 [dependencies]
@@ -27,3 +29,15 @@ path = "examples/search_markets.rs"
 [[example]]
 name = "market_metrics"
 path = "examples/market_metrics.rs"
+
+[[example]]
+name = "investor_activity"
+path = "examples/investor_activity.rs"
+
+[[example]]
+name = "institutional_ownership"
+path = "examples/institutional_ownership.rs"
+
+[[example]]
+name = "for_sale_market_analysis"
+path = "examples/for_sale_market_analysis.rs"

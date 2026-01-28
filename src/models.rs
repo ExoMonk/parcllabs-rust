@@ -267,6 +267,36 @@ pub struct EventPrices {
     pub new_rental_listings: Option<f64>,
 }
 
+/// All-cash transaction metrics.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct AllCash {
+    pub date: String,
+    /// Count of all-cash arms-length sales.
+    pub count_sales: Option<i64>,
+    /// Percentage of arms-length sales completed as all-cash.
+    pub pct_sales: Option<f64>,
+    /// Count of all-cash transfers across all sale types.
+    pub count_transfers: Option<i64>,
+    /// Percentage of transfers completed as all-cash.
+    pub pct_transfers: Option<f64>,
+}
+
+/// Physical attributes of properties involved in housing events.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct HousingEventPropertyAttributes {
+    pub date: String,
+    /// Median bedroom count.
+    pub beds: Option<i64>,
+    /// Median bathroom count.
+    pub baths: Option<f64>,
+    /// Median square footage.
+    pub sqft: Option<i64>,
+    /// Median lot size in square feet.
+    pub lot_size: Option<i64>,
+    /// Median year built.
+    pub year_built: Option<i64>,
+}
+
 // ============================================================================
 // Price Feed
 // ============================================================================
@@ -283,12 +313,66 @@ pub struct PriceFeedEntry {
 // Investor Metrics
 // ============================================================================
 
-/// Investor ownership data.
+/// Investor housing stock ownership data.
 #[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct InvestorHousingStock {
+pub struct InvestorHousingStockOwnership {
     pub date: String,
-    pub investor_owned_units: Option<i64>,
-    pub investor_ownership_pct: Option<f64>,
+    /// Count of properties owned by investors.
+    pub investor_owned_count: Option<i64>,
+    /// Percentage of housing stock owned by investors.
+    pub investor_owned_pct: Option<f64>,
+    /// Count of investor property transfers.
+    pub count_transfers: Option<i64>,
+    /// Percentage of transfers involving investor properties.
+    pub pct_transfers: Option<f64>,
+}
+
+/// Investor purchase-to-sale ratio data.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct InvestorPurchaseToSaleRatio {
+    pub date: String,
+    /// Number of acquisitions by investors.
+    pub acquisitions: Option<i64>,
+    /// Number of dispositions by investors.
+    pub dispositions: Option<i64>,
+    /// Ratio of purchases to sales (>1 = net buyer, <1 = net seller).
+    pub purchase_to_sale_ratio: Option<f64>,
+}
+
+/// Investor housing event counts.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct InvestorHousingEventCounts {
+    pub date: String,
+    /// Count of investor property acquisitions.
+    pub acquisitions: Option<i64>,
+    /// Count of investor property dispositions.
+    pub dispositions: Option<i64>,
+    /// Properties newly listed for sale by investors.
+    pub new_listings_for_sale: Option<i64>,
+    /// Properties newly listed for rent by investors.
+    pub new_rental_listings: Option<i64>,
+}
+
+/// Rolling counts for investor new listings.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct InvestorNewListingsRollingCounts {
+    pub date: String,
+    /// 7-day rolling count.
+    pub rolling_7_day_count: Option<i64>,
+    /// 7-day rolling percentage share.
+    pub rolling_7_day_pct: Option<f64>,
+    /// 30-day rolling count.
+    pub rolling_30_day_count: Option<i64>,
+    /// 30-day rolling percentage share.
+    pub rolling_30_day_pct: Option<f64>,
+    /// 60-day rolling count.
+    pub rolling_60_day_count: Option<i64>,
+    /// 60-day rolling percentage share.
+    pub rolling_60_day_pct: Option<f64>,
+    /// 90-day rolling count.
+    pub rolling_90_day_count: Option<i64>,
+    /// 90-day rolling percentage share.
+    pub rolling_90_day_pct: Option<f64>,
 }
 
 // ============================================================================
@@ -299,8 +383,40 @@ pub struct InvestorHousingStock {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct ForSaleInventory {
     pub date: String,
-    pub total_inventory: Option<i64>,
-    pub median_days_on_market: Option<i64>,
+    /// Total count of properties listed for sale.
+    pub for_sale_inventory: Option<i64>,
+}
+
+/// For-sale inventory price change metrics.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct ForSaleInventoryPriceChanges {
+    pub date: String,
+    /// Count of listings with any price change.
+    pub count_price_change: Option<i64>,
+    /// Count of listings with price drops.
+    pub count_price_drop: Option<i64>,
+    /// Median days between price changes.
+    pub median_days_bt_price_change: Option<f64>,
+    /// Median price change amount.
+    pub median_price_change: Option<f64>,
+    /// Percentage of inventory with price changes.
+    pub pct_price_change: Option<f64>,
+    /// Percentage of inventory with price drops.
+    pub pct_price_drop: Option<f64>,
+}
+
+/// Rolling counts for new for-sale listings.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct NewListingsRollingCounts {
+    pub date: String,
+    /// 7-day rolling count.
+    pub rolling_7_day_count: Option<i64>,
+    /// 30-day rolling count.
+    pub rolling_30_day_count: Option<i64>,
+    /// 60-day rolling count.
+    pub rolling_60_day_count: Option<i64>,
+    /// 90-day rolling count.
+    pub rolling_90_day_count: Option<i64>,
 }
 
 // ============================================================================
@@ -469,5 +585,275 @@ mod tests {
         assert_eq!(entry.date, "2024-01-01");
         assert!((entry.price - 750000.50).abs() < f64::EPSILON);
         assert_eq!(entry.price_feed_type, Some("daily".into()));
+    }
+
+    #[test]
+    fn all_cash_deserialize() {
+        let json = r#"{
+            "date": "2024-01-01",
+            "count_sales": 150,
+            "pct_sales": 28.5,
+            "count_transfers": 200,
+            "pct_transfers": 32.1
+        }"#;
+
+        let all_cash: AllCash = serde_json::from_str(json).unwrap();
+        assert_eq!(all_cash.date, "2024-01-01");
+        assert_eq!(all_cash.count_sales, Some(150));
+        assert!((all_cash.pct_sales.unwrap() - 28.5).abs() < f64::EPSILON);
+        assert_eq!(all_cash.count_transfers, Some(200));
+        assert!((all_cash.pct_transfers.unwrap() - 32.1).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn all_cash_deserialize_with_nulls() {
+        let json = r#"{
+            "date": "2024-01-01",
+            "count_sales": null,
+            "pct_sales": null,
+            "count_transfers": null,
+            "pct_transfers": null
+        }"#;
+
+        let all_cash: AllCash = serde_json::from_str(json).unwrap();
+        assert_eq!(all_cash.date, "2024-01-01");
+        assert!(all_cash.count_sales.is_none());
+        assert!(all_cash.pct_sales.is_none());
+    }
+
+    #[test]
+    fn housing_event_property_attributes_deserialize() {
+        let json = r#"{
+            "date": "2024-01-01",
+            "beds": 3,
+            "baths": 2.5,
+            "sqft": 1850,
+            "lot_size": 6500,
+            "year_built": 1995
+        }"#;
+
+        let attrs: HousingEventPropertyAttributes = serde_json::from_str(json).unwrap();
+        assert_eq!(attrs.date, "2024-01-01");
+        assert_eq!(attrs.beds, Some(3));
+        assert!((attrs.baths.unwrap() - 2.5).abs() < f64::EPSILON);
+        assert_eq!(attrs.sqft, Some(1850));
+        assert_eq!(attrs.lot_size, Some(6500));
+        assert_eq!(attrs.year_built, Some(1995));
+    }
+
+    #[test]
+    fn housing_event_property_attributes_deserialize_with_nulls() {
+        let json = r#"{
+            "date": "2024-01-01",
+            "beds": 4,
+            "baths": null,
+            "sqft": 2000,
+            "lot_size": null,
+            "year_built": null
+        }"#;
+
+        let attrs: HousingEventPropertyAttributes = serde_json::from_str(json).unwrap();
+        assert_eq!(attrs.date, "2024-01-01");
+        assert_eq!(attrs.beds, Some(4));
+        assert!(attrs.baths.is_none());
+        assert_eq!(attrs.sqft, Some(2000));
+        assert!(attrs.lot_size.is_none());
+        assert!(attrs.year_built.is_none());
+    }
+
+    #[test]
+    fn investor_housing_stock_ownership_deserialize() {
+        let json = r#"{
+            "date": "2024-01-01",
+            "investor_owned_count": 15000,
+            "investor_owned_pct": 12.5,
+            "count_transfers": 500,
+            "pct_transfers": 8.3
+        }"#;
+
+        let ownership: InvestorHousingStockOwnership = serde_json::from_str(json).unwrap();
+        assert_eq!(ownership.date, "2024-01-01");
+        assert_eq!(ownership.investor_owned_count, Some(15000));
+        assert!((ownership.investor_owned_pct.unwrap() - 12.5).abs() < f64::EPSILON);
+        assert_eq!(ownership.count_transfers, Some(500));
+    }
+
+    #[test]
+    fn investor_purchase_to_sale_ratio_deserialize() {
+        let json = r#"{
+            "date": "2024-01-01",
+            "acquisitions": 120,
+            "dispositions": 80,
+            "purchase_to_sale_ratio": 1.5
+        }"#;
+
+        let ratio: InvestorPurchaseToSaleRatio = serde_json::from_str(json).unwrap();
+        assert_eq!(ratio.date, "2024-01-01");
+        assert_eq!(ratio.acquisitions, Some(120));
+        assert_eq!(ratio.dispositions, Some(80));
+        assert!((ratio.purchase_to_sale_ratio.unwrap() - 1.5).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn investor_housing_event_counts_deserialize() {
+        let json = r#"{
+            "date": "2024-01-01",
+            "acquisitions": 100,
+            "dispositions": 75,
+            "new_listings_for_sale": 50,
+            "new_rental_listings": 25
+        }"#;
+
+        let counts: InvestorHousingEventCounts = serde_json::from_str(json).unwrap();
+        assert_eq!(counts.date, "2024-01-01");
+        assert_eq!(counts.acquisitions, Some(100));
+        assert_eq!(counts.dispositions, Some(75));
+        assert_eq!(counts.new_listings_for_sale, Some(50));
+        assert_eq!(counts.new_rental_listings, Some(25));
+    }
+
+    #[test]
+    fn investor_new_listings_rolling_counts_deserialize() {
+        let json = r#"{
+            "date": "2024-01-01",
+            "rolling_7_day_count": 10,
+            "rolling_7_day_pct": 5.2,
+            "rolling_30_day_count": 45,
+            "rolling_30_day_pct": 6.1,
+            "rolling_60_day_count": 88,
+            "rolling_60_day_pct": 5.8,
+            "rolling_90_day_count": 130,
+            "rolling_90_day_pct": 5.5
+        }"#;
+
+        let counts: InvestorNewListingsRollingCounts = serde_json::from_str(json).unwrap();
+        assert_eq!(counts.date, "2024-01-01");
+        assert_eq!(counts.rolling_7_day_count, Some(10));
+        assert!((counts.rolling_7_day_pct.unwrap() - 5.2).abs() < f64::EPSILON);
+        assert_eq!(counts.rolling_30_day_count, Some(45));
+        assert_eq!(counts.rolling_90_day_count, Some(130));
+    }
+
+    #[test]
+    fn investor_new_listings_rolling_counts_with_nulls() {
+        let json = r#"{
+            "date": "2024-01-01",
+            "rolling_7_day_count": null,
+            "rolling_7_day_pct": null,
+            "rolling_30_day_count": 45,
+            "rolling_30_day_pct": 6.1,
+            "rolling_60_day_count": null,
+            "rolling_60_day_pct": null,
+            "rolling_90_day_count": null,
+            "rolling_90_day_pct": null
+        }"#;
+
+        let counts: InvestorNewListingsRollingCounts = serde_json::from_str(json).unwrap();
+        assert_eq!(counts.date, "2024-01-01");
+        assert!(counts.rolling_7_day_count.is_none());
+        assert_eq!(counts.rolling_30_day_count, Some(45));
+        assert!(counts.rolling_60_day_count.is_none());
+    }
+
+    #[test]
+    fn for_sale_inventory_deserialize() {
+        let json = r#"{
+            "date": "2024-01-01",
+            "for_sale_inventory": 1250
+        }"#;
+
+        let inventory: ForSaleInventory = serde_json::from_str(json).unwrap();
+        assert_eq!(inventory.date, "2024-01-01");
+        assert_eq!(inventory.for_sale_inventory, Some(1250));
+    }
+
+    #[test]
+    fn for_sale_inventory_deserialize_with_null() {
+        let json = r#"{
+            "date": "2024-01-01",
+            "for_sale_inventory": null
+        }"#;
+
+        let inventory: ForSaleInventory = serde_json::from_str(json).unwrap();
+        assert_eq!(inventory.date, "2024-01-01");
+        assert!(inventory.for_sale_inventory.is_none());
+    }
+
+    #[test]
+    fn for_sale_inventory_price_changes_deserialize() {
+        let json = r#"{
+            "date": "2024-01-01",
+            "count_price_change": 150,
+            "count_price_drop": 120,
+            "median_days_bt_price_change": 21.5,
+            "median_price_change": -25000.0,
+            "pct_price_change": 12.5,
+            "pct_price_drop": 10.2
+        }"#;
+
+        let changes: ForSaleInventoryPriceChanges = serde_json::from_str(json).unwrap();
+        assert_eq!(changes.date, "2024-01-01");
+        assert_eq!(changes.count_price_change, Some(150));
+        assert_eq!(changes.count_price_drop, Some(120));
+        assert!((changes.median_days_bt_price_change.unwrap() - 21.5).abs() < f64::EPSILON);
+        assert!((changes.median_price_change.unwrap() - (-25000.0)).abs() < f64::EPSILON);
+        assert!((changes.pct_price_change.unwrap() - 12.5).abs() < f64::EPSILON);
+        assert!((changes.pct_price_drop.unwrap() - 10.2).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn for_sale_inventory_price_changes_deserialize_with_nulls() {
+        let json = r#"{
+            "date": "2024-01-01",
+            "count_price_change": 100,
+            "count_price_drop": null,
+            "median_days_bt_price_change": null,
+            "median_price_change": null,
+            "pct_price_change": 8.0,
+            "pct_price_drop": null
+        }"#;
+
+        let changes: ForSaleInventoryPriceChanges = serde_json::from_str(json).unwrap();
+        assert_eq!(changes.date, "2024-01-01");
+        assert_eq!(changes.count_price_change, Some(100));
+        assert!(changes.count_price_drop.is_none());
+        assert!(changes.median_days_bt_price_change.is_none());
+        assert!((changes.pct_price_change.unwrap() - 8.0).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn new_listings_rolling_counts_deserialize() {
+        let json = r#"{
+            "date": "2024-01-01",
+            "rolling_7_day_count": 45,
+            "rolling_30_day_count": 180,
+            "rolling_60_day_count": 350,
+            "rolling_90_day_count": 520
+        }"#;
+
+        let counts: NewListingsRollingCounts = serde_json::from_str(json).unwrap();
+        assert_eq!(counts.date, "2024-01-01");
+        assert_eq!(counts.rolling_7_day_count, Some(45));
+        assert_eq!(counts.rolling_30_day_count, Some(180));
+        assert_eq!(counts.rolling_60_day_count, Some(350));
+        assert_eq!(counts.rolling_90_day_count, Some(520));
+    }
+
+    #[test]
+    fn new_listings_rolling_counts_deserialize_with_nulls() {
+        let json = r#"{
+            "date": "2024-01-01",
+            "rolling_7_day_count": null,
+            "rolling_30_day_count": 150,
+            "rolling_60_day_count": null,
+            "rolling_90_day_count": null
+        }"#;
+
+        let counts: NewListingsRollingCounts = serde_json::from_str(json).unwrap();
+        assert_eq!(counts.date, "2024-01-01");
+        assert!(counts.rolling_7_day_count.is_none());
+        assert_eq!(counts.rolling_30_day_count, Some(150));
+        assert!(counts.rolling_60_day_count.is_none());
+        assert!(counts.rolling_90_day_count.is_none());
     }
 }

@@ -36,12 +36,16 @@ pub mod endpoints;
 pub mod error;
 pub mod models;
 
+pub use endpoints::for_sale_metrics::ForSaleMetricsParams;
+pub use endpoints::investor_metrics::InvestorMetricsParams;
 pub use endpoints::market_metrics::MetricsParams;
 pub use endpoints::search::SearchParams;
 pub use error::{ParclError, Result};
 pub use models::*;
 
-use endpoints::{MarketMetricsClient, PriceFeedClient, SearchClient};
+use endpoints::{
+    ForSaleMetricsClient, InvestorMetricsClient, MarketMetricsClient, PriceFeedClient, SearchClient,
+};
 use reqwest::Client;
 use std::env;
 
@@ -93,6 +97,16 @@ impl ParclClient {
     /// Returns a client for market metrics endpoints.
     pub fn market_metrics(&self) -> MarketMetricsClient<'_> {
         MarketMetricsClient::new(&self.http, &self.base_url, &self.api_key)
+    }
+
+    /// Returns a client for investor metrics endpoints.
+    pub fn investor_metrics(&self) -> InvestorMetricsClient<'_> {
+        InvestorMetricsClient::new(&self.http, &self.base_url, &self.api_key)
+    }
+
+    /// Returns a client for for-sale market metrics endpoints.
+    pub fn for_sale_metrics(&self) -> ForSaleMetricsClient<'_> {
+        ForSaleMetricsClient::new(&self.http, &self.base_url, &self.api_key)
     }
 
     /// Returns a client for price feed endpoints.
@@ -166,8 +180,20 @@ mod tests {
     }
 
     #[test]
+    fn client_returns_investor_metrics_client() {
+        let client = ParclClient::with_api_key("test");
+        let _investor = client.investor_metrics();
+    }
+
+    #[test]
     fn client_returns_price_feed_client() {
         let client = ParclClient::with_api_key("test");
         let _feed = client.price_feed();
+    }
+
+    #[test]
+    fn client_returns_for_sale_metrics_client() {
+        let client = ParclClient::with_api_key("test");
+        let _for_sale = client.for_sale_metrics();
     }
 }

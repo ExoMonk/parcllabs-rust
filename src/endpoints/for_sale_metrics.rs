@@ -1,22 +1,22 @@
-//! Market metrics endpoints for housing data retrieval.
+//! For-sale market metrics endpoints for tracking inventory and listings.
 
 use crate::error::{ParclError, Result};
 use crate::models::{
-    AllCash, HousingEventCounts, HousingEventPrices, HousingEventPropertyAttributes, HousingStock,
-    MetricsResponse, PropertyType,
+    ForSaleInventory, ForSaleInventoryPriceChanges, MetricsResponse, NewListingsRollingCounts,
+    PropertyType,
 };
 use reqwest::Client;
 
-/// Client for market metrics API endpoints.
-pub struct MarketMetricsClient<'a> {
+/// Client for for-sale market metrics API endpoints.
+pub struct ForSaleMetricsClient<'a> {
     http: &'a Client,
     base_url: &'a str,
     api_key: &'a str,
 }
 
-/// Query parameters for paginated metrics requests.
+/// Query parameters for for-sale metrics requests.
 #[derive(Debug, Default, Clone)]
-pub struct MetricsParams {
+pub struct ForSaleMetricsParams {
     pub limit: Option<u32>,
     pub offset: Option<u32>,
     pub start_date: Option<String>,
@@ -25,36 +25,36 @@ pub struct MetricsParams {
     pub auto_paginate: bool,
 }
 
-impl MetricsParams {
+impl ForSaleMetricsParams {
     pub fn new() -> Self {
         Self::default()
     }
 
-    /// Maximum number of results per page
+    /// Maximum number of results per page.
     pub fn limit(mut self, limit: u32) -> Self {
         self.limit = Some(limit);
         self
     }
 
-    /// Offset for pagination
+    /// Offset for pagination.
     pub fn offset(mut self, offset: u32) -> Self {
         self.offset = Some(offset);
         self
     }
 
-    /// Filter results starting from this date (YYYY-MM-DD)
+    /// Filter results starting from this date (YYYY-MM-DD).
     pub fn start_date(mut self, date: impl Into<String>) -> Self {
         self.start_date = Some(date.into());
         self
     }
 
-    /// Filter results ending at this date (YYYY-MM-DD)
+    /// Filter results ending at this date (YYYY-MM-DD).
     pub fn end_date(mut self, date: impl Into<String>) -> Self {
         self.end_date = Some(date.into());
         self
     }
 
-    /// Filter by property type (single family, condo, townhouse, etc.)
+    /// Filter by property type.
     pub fn property_type(mut self, property_type: PropertyType) -> Self {
         self.property_type = Some(property_type);
         self
@@ -93,7 +93,7 @@ impl MetricsParams {
     }
 }
 
-impl<'a> MarketMetricsClient<'a> {
+impl<'a> ForSaleMetricsClient<'a> {
     pub(crate) fn new(http: &'a Client, base_url: &'a str, api_key: &'a str) -> Self {
         Self {
             http,
@@ -102,81 +102,59 @@ impl<'a> MarketMetricsClient<'a> {
         }
     }
 
-    /// Retrieves housing event counts (sales, listings) for a market.
-    pub async fn housing_event_counts(
+    /// Retrieves current for-sale inventory counts.
+    ///
+    /// Returns the total count of properties currently listed for sale in the market.
+    /// Data series begins on September 1, 2022.
+    pub async fn for_sale_inventory(
         &self,
         parcl_id: i64,
-        params: Option<MetricsParams>,
-    ) -> Result<MetricsResponse<HousingEventCounts>> {
+        params: Option<ForSaleMetricsParams>,
+    ) -> Result<MetricsResponse<ForSaleInventory>> {
         let params = params.unwrap_or_default();
         let auto_paginate = params.auto_paginate;
         let query = params.to_query_string();
         let url = format!(
-            "{}/v1/market_metrics/{}/housing_event_counts{}",
+            "{}/v1/for_sale_market_metrics/{}/for_sale_inventory{}",
             self.base_url, parcl_id, query
         );
         self.fetch_with_pagination(&url, auto_paginate).await
     }
 
-    /// Retrieves housing stock data (single-family, condo, townhouse counts).
-    pub async fn housing_stock(
+    /// Retrieves for-sale inventory price change metrics.
+    ///
+    /// Returns metrics on price behavior including price changes, price drops,
+    /// median days between changes, and percentage of inventory affected.
+    /// Data series begins on September 1, 2022.
+    pub async fn for_sale_inventory_price_changes(
         &self,
         parcl_id: i64,
-        params: Option<MetricsParams>,
-    ) -> Result<MetricsResponse<HousingStock>> {
+        params: Option<ForSaleMetricsParams>,
+    ) -> Result<MetricsResponse<ForSaleInventoryPriceChanges>> {
         let params = params.unwrap_or_default();
         let auto_paginate = params.auto_paginate;
         let query = params.to_query_string();
         let url = format!(
-            "{}/v1/market_metrics/{}/housing_stock{}",
+            "{}/v1/for_sale_market_metrics/{}/for_sale_inventory_price_changes{}",
             self.base_url, parcl_id, query
         );
         self.fetch_with_pagination(&url, auto_paginate).await
     }
 
-    /// Retrieves housing event prices (median sale, list, rental prices).
-    pub async fn housing_event_prices(
+    /// Retrieves rolling counts of new for-sale listings.
+    ///
+    /// Returns rolling counts over 7, 30, 60, and 90 day periods
+    /// for newly listed properties in the market.
+    pub async fn new_listings_rolling_counts(
         &self,
         parcl_id: i64,
-        params: Option<MetricsParams>,
-    ) -> Result<MetricsResponse<HousingEventPrices>> {
+        params: Option<ForSaleMetricsParams>,
+    ) -> Result<MetricsResponse<NewListingsRollingCounts>> {
         let params = params.unwrap_or_default();
         let auto_paginate = params.auto_paginate;
         let query = params.to_query_string();
         let url = format!(
-            "{}/v1/market_metrics/{}/housing_event_prices{}",
-            self.base_url, parcl_id, query
-        );
-        self.fetch_with_pagination(&url, auto_paginate).await
-    }
-
-    /// Retrieves all-cash transaction counts and percentages.
-    pub async fn all_cash(
-        &self,
-        parcl_id: i64,
-        params: Option<MetricsParams>,
-    ) -> Result<MetricsResponse<AllCash>> {
-        let params = params.unwrap_or_default();
-        let auto_paginate = params.auto_paginate;
-        let query = params.to_query_string();
-        let url = format!(
-            "{}/v1/market_metrics/{}/all_cash{}",
-            self.base_url, parcl_id, query
-        );
-        self.fetch_with_pagination(&url, auto_paginate).await
-    }
-
-    /// Retrieves physical attributes of properties in housing events.
-    pub async fn housing_event_property_attributes(
-        &self,
-        parcl_id: i64,
-        params: Option<MetricsParams>,
-    ) -> Result<MetricsResponse<HousingEventPropertyAttributes>> {
-        let params = params.unwrap_or_default();
-        let auto_paginate = params.auto_paginate;
-        let query = params.to_query_string();
-        let url = format!(
-            "{}/v1/market_metrics/{}/housing_event_property_attributes{}",
+            "{}/v1/for_sale_market_metrics/{}/new_listings_rolling_counts{}",
             self.base_url, parcl_id, query
         );
         self.fetch_with_pagination(&url, auto_paginate).await
@@ -228,11 +206,10 @@ impl<'a> MarketMetricsClient<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::PropertyType;
 
     #[test]
-    fn metrics_params_default() {
-        let params = MetricsParams::new();
+    fn for_sale_params_default() {
+        let params = ForSaleMetricsParams::new();
         assert!(params.limit.is_none());
         assert!(params.offset.is_none());
         assert!(params.start_date.is_none());
@@ -242,8 +219,8 @@ mod tests {
     }
 
     #[test]
-    fn metrics_params_builder() {
-        let params = MetricsParams::new()
+    fn for_sale_params_builder() {
+        let params = ForSaleMetricsParams::new()
             .limit(10)
             .offset(20)
             .start_date("2024-01-01")
@@ -260,48 +237,19 @@ mod tests {
     }
 
     #[test]
-    fn metrics_params_empty_query_string() {
-        let params = MetricsParams::new();
+    fn for_sale_params_empty_query_string() {
+        let params = ForSaleMetricsParams::new();
         assert_eq!(params.to_query_string(), "");
     }
 
     #[test]
-    fn metrics_params_query_string_limit() {
-        let params = MetricsParams::new().limit(5);
-        assert_eq!(params.to_query_string(), "?limit=5");
-    }
-
-    #[test]
-    fn metrics_params_query_string_offset() {
-        let params = MetricsParams::new().offset(10);
-        assert_eq!(params.to_query_string(), "?offset=10");
-    }
-
-    #[test]
-    fn metrics_params_query_string_dates() {
-        let params = MetricsParams::new()
-            .start_date("2024-01-01")
-            .end_date("2024-06-30");
-
-        let qs = params.to_query_string();
-        assert!(qs.contains("start_date=2024-01-01"));
-        assert!(qs.contains("end_date=2024-06-30"));
-    }
-
-    #[test]
-    fn metrics_params_query_string_property_type() {
-        let params = MetricsParams::new().property_type(PropertyType::Condo);
-        assert_eq!(params.to_query_string(), "?property_type=CONDO");
-    }
-
-    #[test]
-    fn metrics_params_query_string_all_fields() {
-        let params = MetricsParams::new()
+    fn for_sale_params_query_string_all_fields() {
+        let params = ForSaleMetricsParams::new()
             .limit(10)
             .offset(5)
             .start_date("2024-01-01")
             .end_date("2024-12-31")
-            .property_type(PropertyType::Townhouse);
+            .property_type(PropertyType::Condo);
 
         let qs = params.to_query_string();
         assert!(qs.starts_with('?'));
@@ -309,14 +257,20 @@ mod tests {
         assert!(qs.contains("offset=5"));
         assert!(qs.contains("start_date=2024-01-01"));
         assert!(qs.contains("end_date=2024-12-31"));
-        assert!(qs.contains("property_type=TOWNHOUSE"));
+        assert!(qs.contains("property_type=CONDO"));
     }
 
     #[test]
-    fn metrics_params_auto_paginate_not_in_query() {
-        let params = MetricsParams::new().limit(5).auto_paginate(true);
+    fn for_sale_params_query_string_partial() {
+        let params = ForSaleMetricsParams::new()
+            .limit(25)
+            .property_type(PropertyType::Townhouse);
+
         let qs = params.to_query_string();
-        assert!(!qs.contains("auto_paginate"));
-        assert!(qs.contains("limit=5"));
+        assert!(qs.starts_with('?'));
+        assert!(qs.contains("limit=25"));
+        assert!(qs.contains("property_type=TOWNHOUSE"));
+        assert!(!qs.contains("offset"));
+        assert!(!qs.contains("start_date"));
     }
 }
