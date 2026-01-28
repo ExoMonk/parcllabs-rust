@@ -1,8 +1,10 @@
 # parcllabs-rust
 
+[![CI](https://github.com/ExoMonk/parcllabs-rust/actions/workflows/ci.yml/badge.svg)](https://github.com/ExoMonk/parcllabs-rust/actions/workflows/ci.yml)
 [![Crates.io](https://img.shields.io/crates/v/parcllabs.svg)](https://crates.io/crates/parcllabs)
 [![Documentation](https://docs.rs/parcllabs/badge.svg)](https://docs.rs/parcllabs)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![MSRV](https://img.shields.io/badge/MSRV-1.75.0-blue.svg)](https://blog.rust-lang.org/2023/12/28/Rust-1.75.0.html)
 
 Rust SDK for the [Parcl Labs API](https://docs.parcllabs.com/) - Real-time U.S. housing market data and analytics covering 70,000+ markets.
 
@@ -244,6 +246,75 @@ let listings = client.investor_metrics()
 
 ---
 
+### For-Sale Market Metrics
+
+Track current inventory and listing activity in the for-sale market.
+
+```rust
+use parcllabs::{ForSaleMetricsParams, PropertyType};
+
+let parcl_id = 2900078; // Los Angeles CBSA
+
+// Current for-sale inventory count
+let inventory = client.for_sale_metrics()
+    .for_sale_inventory(parcl_id, None)
+    .await?;
+
+for item in &inventory.items {
+    println!("{}: {} properties for sale",
+        item.date,
+        item.for_sale_inventory.unwrap_or(0)
+    );
+}
+
+// Price change metrics (drops, days between changes)
+let params = ForSaleMetricsParams::new()
+    .property_type(PropertyType::SingleFamily)
+    .start_date("2024-01-01");
+
+let price_changes = client.for_sale_metrics()
+    .for_sale_inventory_price_changes(parcl_id, Some(params))
+    .await?;
+
+for item in &price_changes.items {
+    println!("{}: {:.1}% had price drops",
+        item.date,
+        item.pct_price_drop.unwrap_or(0.0)
+    );
+}
+
+// Rolling counts of new listings (7, 30, 60, 90 day)
+let rolling = client.for_sale_metrics()
+    .new_listings_rolling_counts(parcl_id, None)
+    .await?;
+
+for item in &rolling.items {
+    println!("{}: {} new listings (30-day)",
+        item.date,
+        item.rolling_30_day_count.unwrap_or(0)
+    );
+}
+```
+
+**Available Endpoints:**
+| Method | Description |
+|--------|-------------|
+| `for_sale_inventory()` | Current inventory count |
+| `for_sale_inventory_price_changes()` | Price change metrics |
+| `new_listings_rolling_counts()` | Rolling counts (7/30/60/90 day) |
+
+**ForSaleMetricsParams Options:**
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `start_date` | `String` | Filter from date (YYYY-MM-DD) |
+| `end_date` | `String` | Filter to date (YYYY-MM-DD) |
+| `property_type` | `PropertyType` | SingleFamily, Condo, Townhouse, Other, AllProperties |
+| `limit` | `u32` | Results per page |
+| `offset` | `u32` | Pagination offset |
+| `auto_paginate` | `bool` | Fetch all pages automatically |
+
+---
+
 ### Price Feed
 
 Historical price indices for tradeable markets.
@@ -373,13 +444,15 @@ if let Some(ev) = events.items.first() {
 | **Investor Metrics** | `housing_event_counts` | `investor_metrics().housing_event_counts()` |
 | **Investor Metrics** | `housing_event_prices` | `investor_metrics().housing_event_prices()` |
 | **Investor Metrics** | `new_listings_for_sale_rolling_counts` | `investor_metrics().new_listings_for_sale_rolling_counts()` |
+| **For-Sale Metrics** | `for_sale_inventory` | `for_sale_metrics().for_sale_inventory()` |
+| **For-Sale Metrics** | `for_sale_inventory_price_changes` | `for_sale_metrics().for_sale_inventory_price_changes()` |
+| **For-Sale Metrics** | `new_listings_rolling_counts` | `for_sale_metrics().new_listings_rolling_counts()` |
 | **Price Feed** | `history` | `price_feed().history()` |
 
 ### Planned
 
 | Service | Endpoints | Priority |
 |---------|-----------|----------|
-| **For-Sale Metrics** | for_sale_inventory, price_changes, rolling_counts | High |
 | **Rental Metrics** | gross_yield, rental_units_concentration, rolling_counts | High |
 | **New Construction** | housing_event_counts, housing_event_prices | Medium |
 | **Portfolio Metrics** | sf_housing_stock_ownership, sf_event_counts, rolling_counts | Medium |
