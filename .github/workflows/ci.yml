@@ -120,6 +120,9 @@ jobs:
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
 
+      - name: Remove Cargo.lock for MSRV compatibility
+        run: rm -f Cargo.lock
+
       - name: Check
         run: cargo check --all-features
 
