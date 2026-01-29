@@ -408,12 +408,17 @@ pub struct ForSaleInventoryPriceChanges {
     /// Count of listings with price drops.
     pub count_price_drop: Option<i64>,
     /// Median days between price changes.
+    #[serde(rename = "median_days_bt_change")]
     pub median_days_bt_price_change: Option<f64>,
     /// Median price change amount.
     pub median_price_change: Option<f64>,
+    /// Median percentage price change.
+    pub median_pct_price_change: Option<f64>,
     /// Percentage of inventory with price changes.
+    #[serde(rename = "pct_inventory_price_change")]
     pub pct_price_change: Option<f64>,
     /// Percentage of inventory with price drops.
+    #[serde(rename = "pct_inventory_price_drop")]
     pub pct_price_drop: Option<f64>,
 }
 
@@ -422,12 +427,16 @@ pub struct ForSaleInventoryPriceChanges {
 pub struct NewListingsRollingCounts {
     pub date: String,
     /// 7-day rolling count.
+    #[serde(rename = "rolling_7_day")]
     pub rolling_7_day_count: Option<i64>,
     /// 30-day rolling count.
+    #[serde(rename = "rolling_30_day")]
     pub rolling_30_day_count: Option<i64>,
     /// 60-day rolling count.
+    #[serde(rename = "rolling_60_day")]
     pub rolling_60_day_count: Option<i64>,
     /// 90-day rolling count.
+    #[serde(rename = "rolling_90_day")]
     pub rolling_90_day_count: Option<i64>,
 }
 
@@ -456,12 +465,16 @@ pub struct RentalUnitsConcentration {
 pub struct RentalNewListingsRollingCounts {
     pub date: String,
     /// 7-day rolling count.
+    #[serde(rename = "rolling_7_day")]
     pub rolling_7_day_count: Option<i64>,
     /// 30-day rolling count.
+    #[serde(rename = "rolling_30_day")]
     pub rolling_30_day_count: Option<i64>,
     /// 60-day rolling count.
+    #[serde(rename = "rolling_60_day")]
     pub rolling_60_day_count: Option<i64>,
     /// 90-day rolling count.
+    #[serde(rename = "rolling_90_day")]
     pub rolling_90_day_count: Option<i64>,
 }
 
@@ -822,10 +835,11 @@ mod tests {
             "date": "2024-01-01",
             "count_price_change": 150,
             "count_price_drop": 120,
-            "median_days_bt_price_change": 21.5,
+            "median_days_bt_change": 21.5,
             "median_price_change": -25000.0,
-            "pct_price_change": 12.5,
-            "pct_price_drop": 10.2
+            "median_pct_price_change": -2.5,
+            "pct_inventory_price_change": 12.5,
+            "pct_inventory_price_drop": 10.2
         }"#;
 
         let changes: ForSaleInventoryPriceChanges = serde_json::from_str(json).unwrap();
@@ -834,6 +848,7 @@ mod tests {
         assert_eq!(changes.count_price_drop, Some(120));
         assert!((changes.median_days_bt_price_change.unwrap() - 21.5).abs() < f64::EPSILON);
         assert!((changes.median_price_change.unwrap() - (-25000.0)).abs() < f64::EPSILON);
+        assert!((changes.median_pct_price_change.unwrap() - (-2.5)).abs() < f64::EPSILON);
         assert!((changes.pct_price_change.unwrap() - 12.5).abs() < f64::EPSILON);
         assert!((changes.pct_price_drop.unwrap() - 10.2).abs() < f64::EPSILON);
     }
@@ -844,10 +859,10 @@ mod tests {
             "date": "2024-01-01",
             "count_price_change": 100,
             "count_price_drop": null,
-            "median_days_bt_price_change": null,
+            "median_days_bt_change": null,
             "median_price_change": null,
-            "pct_price_change": 8.0,
-            "pct_price_drop": null
+            "pct_inventory_price_change": 8.0,
+            "pct_inventory_price_drop": null
         }"#;
 
         let changes: ForSaleInventoryPriceChanges = serde_json::from_str(json).unwrap();
@@ -862,10 +877,10 @@ mod tests {
     fn new_listings_rolling_counts_deserialize() {
         let json = r#"{
             "date": "2024-01-01",
-            "rolling_7_day_count": 45,
-            "rolling_30_day_count": 180,
-            "rolling_60_day_count": 350,
-            "rolling_90_day_count": 520
+            "rolling_7_day": 45,
+            "rolling_30_day": 180,
+            "rolling_60_day": 350,
+            "rolling_90_day": 520
         }"#;
 
         let counts: NewListingsRollingCounts = serde_json::from_str(json).unwrap();
@@ -880,10 +895,10 @@ mod tests {
     fn new_listings_rolling_counts_deserialize_with_nulls() {
         let json = r#"{
             "date": "2024-01-01",
-            "rolling_7_day_count": null,
-            "rolling_30_day_count": 150,
-            "rolling_60_day_count": null,
-            "rolling_90_day_count": null
+            "rolling_7_day": null,
+            "rolling_30_day": 150,
+            "rolling_60_day": null,
+            "rolling_90_day": null
         }"#;
 
         let counts: NewListingsRollingCounts = serde_json::from_str(json).unwrap();
@@ -934,10 +949,10 @@ mod tests {
     fn rental_new_listings_rolling_counts_deserialize() {
         let json = r#"{
             "date": "2024-01-01",
-            "rolling_7_day_count": 25,
-            "rolling_30_day_count": 100,
-            "rolling_60_day_count": 200,
-            "rolling_90_day_count": 300
+            "rolling_7_day": 25,
+            "rolling_30_day": 100,
+            "rolling_60_day": 200,
+            "rolling_90_day": 300
         }"#;
 
         let counts: RentalNewListingsRollingCounts = serde_json::from_str(json).unwrap();
