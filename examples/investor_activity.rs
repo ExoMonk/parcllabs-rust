@@ -144,13 +144,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("{}", "-".repeat(55));
 
         for item in &rolling.items {
+            let counts = item.count.as_ref();
             println!(
                 "{:<12} {:>10} {:>10} {:>10} {:>10}",
                 item.date,
-                item.rolling_7_day_count.unwrap_or(0),
-                item.rolling_30_day_count.unwrap_or(0),
-                item.rolling_60_day_count.unwrap_or(0),
-                item.rolling_90_day_count.unwrap_or(0)
+                counts.and_then(|c| c.rolling_7_day).unwrap_or(0),
+                counts.and_then(|c| c.rolling_30_day).unwrap_or(0),
+                counts.and_then(|c| c.rolling_60_day).unwrap_or(0),
+                counts.and_then(|c| c.rolling_90_day).unwrap_or(0)
             );
         }
 
@@ -163,13 +164,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("{}", "-".repeat(55));
 
         for item in &rolling.items {
+            let pcts = item.pct_for_sale_market.as_ref();
             println!(
                 "{:<12} {:>9.1}% {:>9.1}% {:>9.1}% {:>9.1}%",
                 item.date,
-                item.rolling_7_day_pct.unwrap_or(0.0),
-                item.rolling_30_day_pct.unwrap_or(0.0),
-                item.rolling_60_day_pct.unwrap_or(0.0),
-                item.rolling_90_day_pct.unwrap_or(0.0)
+                pcts.and_then(|p| p.rolling_7_day).unwrap_or(0.0),
+                pcts.and_then(|p| p.rolling_30_day).unwrap_or(0.0),
+                pcts.and_then(|p| p.rolling_60_day).unwrap_or(0.0),
+                pcts.and_then(|p| p.rolling_90_day).unwrap_or(0.0)
             );
         }
 

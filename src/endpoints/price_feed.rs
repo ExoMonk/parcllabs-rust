@@ -34,8 +34,31 @@ impl<'a> PriceFeedClient<'a> {
             "{}/v1/price_feed/{}/history{}",
             self.base_url, parcl_id, query
         );
+        self.fetch_with_pagination(&url, auto_paginate).await
+    }
 
-        let mut response = self.fetch_page(&url).await?;
+    /// Retrieves historical rental price feed data for a market.
+    pub async fn rental_history(
+        &self,
+        parcl_id: i64,
+        params: Option<MetricsParams>,
+    ) -> Result<MetricsResponse<PriceFeedEntry>> {
+        let params = params.unwrap_or_default();
+        let auto_paginate = params.auto_paginate;
+        let query = params.to_query_string();
+        let url = format!(
+            "{}/v1/price_feed/{}/rental_price_feed{}",
+            self.base_url, parcl_id, query
+        );
+        self.fetch_with_pagination(&url, auto_paginate).await
+    }
+
+    async fn fetch_with_pagination(
+        &self,
+        url: &str,
+        auto_paginate: bool,
+    ) -> Result<MetricsResponse<PriceFeedEntry>> {
+        let mut response = self.fetch_page(url).await?;
 
         if auto_paginate {
             while let Some(ref next_url) = response.links.next {
