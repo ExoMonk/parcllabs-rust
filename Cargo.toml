@@ -1,6 +1,6 @@
 [package]
 name = "parcllabs"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 rust-version = "1.83.0"
 description = "Rust SDK for the Parcl Labs API - Real-time U.S. housing market data"
