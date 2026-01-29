@@ -315,11 +315,64 @@ for item in &rolling.items {
 
 ---
 
+### Rental Market Metrics
+
+Track rental market activity, yields, and rental concentration.
+
+```rust
+use parcllabs::RentalMetricsParams;
+
+let parcl_id = 2900078; // Los Angeles CBSA
+
+// Gross rental yield (annual rent / sale price)
+let yields = client.rental_metrics()
+    .gross_yield(parcl_id, None)
+    .await?;
+
+for item in &yields.items {
+    println!("{}: {:.2}% yield",
+        item.date,
+        item.gross_yield.unwrap_or(0.0)
+    );
+}
+
+// Rental units concentration (% of housing that's rental)
+let concentration = client.rental_metrics()
+    .rental_units_concentration(parcl_id, None)
+    .await?;
+
+// Rolling counts of new rental listings
+let params = RentalMetricsParams::new()
+    .start_date("2024-01-01");
+
+let rolling = client.rental_metrics()
+    .new_listings_for_rent_rolling_counts(parcl_id, Some(params))
+    .await?;
+
+for item in &rolling.items {
+    println!("{}: {} new rentals (30-day)",
+        item.date,
+        item.rolling_30_day_count.unwrap_or(0)
+    );
+}
+```
+
+**Available Endpoints:**
+
+| Method                                   | Description                      |
+|------------------------------------------|----------------------------------|
+| `gross_yield()`                          | Annual rent / sale price ratio   |
+| `rental_units_concentration()`           | Percentage of housing as rentals |
+| `new_listings_for_rent_rolling_counts()` | Rolling counts (7/30/60/90 day)  |
+
+---
+
 ### Price Feed
 
 Historical price indices for tradeable markets.
 
 ```rust
+// Sale price index history
 let feed = client.price_feed()
     .history(parcl_id, Some(MetricsParams::new().limit(30)))
     .await?;
@@ -327,7 +380,23 @@ let feed = client.price_feed()
 for entry in &feed.items {
     println!("{}: ${:.2}", entry.date, entry.price);
 }
+
+// Rental price feed
+let rental = client.price_feed()
+    .rental_history(parcl_id, None)
+    .await?;
+
+for entry in &rental.items {
+    println!("{}: ${:.2}/mo", entry.date, entry.price);
+}
 ```
+
+**Available Endpoints:**
+
+| Method             | Description        |
+|--------------------|--------------------|
+| `history()`        | Sale price index   |
+| `rental_history()` | Rental price index |
 
 ---
 
@@ -448,18 +517,20 @@ if let Some(ev) = events.items.first() {
 | **For-Sale Metrics** | `for_sale_inventory` | `for_sale_metrics().for_sale_inventory()` |
 | **For-Sale Metrics** | `for_sale_inventory_price_changes` | `for_sale_metrics().for_sale_inventory_price_changes()` |
 | **For-Sale Metrics** | `new_listings_rolling_counts` | `for_sale_metrics().new_listings_rolling_counts()` |
+| **Rental Metrics** | `gross_yield` | `rental_metrics().gross_yield()` |
+| **Rental Metrics** | `rental_units_concentration` | `rental_metrics().rental_units_concentration()` |
+| **Rental Metrics** | `new_listings_for_rent_rolling_counts` | `rental_metrics().new_listings_for_rent_rolling_counts()` |
 | **Price Feed** | `history` | `price_feed().history()` |
+| **Price Feed** | `rental_history` | `price_feed().rental_history()` |
 
 ### Planned
 
-| Service | Endpoints | Priority |
-|---------|-----------|----------|
-| **Rental Metrics** | gross_yield, rental_units_concentration, rolling_counts | High |
-| **New Construction** | housing_event_counts, housing_event_prices | Medium |
-| **Portfolio Metrics** | sf_housing_stock_ownership, sf_event_counts, rolling_counts | Medium |
-| **Price Feed** | rental_price_feed | Medium |
-| **Property API** | property_search, event_history, address_search | Low |
-| **Batch Endpoints** | POST endpoints for bulk queries | Low |
+| Service              | Endpoints                                                   | Priority |
+|----------------------|-------------------------------------------------------------|----------|
+| **New Construction** | housing_event_counts, housing_event_prices                  | Medium   |
+| **Portfolio Metrics**| sf_housing_stock_ownership, sf_event_counts, rolling_counts | Medium   |
+| **Property API**     | property_search, event_history, address_search              | Low      |
+| **Batch Endpoints**  | POST endpoints for bulk queries                             | Low      |
 
 ---
 

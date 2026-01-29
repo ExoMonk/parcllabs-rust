@@ -318,13 +318,11 @@ pub struct PriceFeedEntry {
 pub struct InvestorHousingStockOwnership {
     pub date: String,
     /// Count of properties owned by investors.
+    #[serde(rename = "count")]
     pub investor_owned_count: Option<i64>,
     /// Percentage of housing stock owned by investors.
+    #[serde(rename = "pct_ownership")]
     pub investor_owned_pct: Option<f64>,
-    /// Count of investor property transfers.
-    pub count_transfers: Option<i64>,
-    /// Percentage of transfers involving investor properties.
-    pub pct_transfers: Option<f64>,
 }
 
 /// Investor purchase-to-sale ratio data.
@@ -353,26 +351,40 @@ pub struct InvestorHousingEventCounts {
     pub new_rental_listings: Option<i64>,
 }
 
+/// Rolling counts with multiple time windows.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct RollingCounts {
+    /// 7-day rolling count.
+    pub rolling_7_day: Option<i64>,
+    /// 30-day rolling count.
+    pub rolling_30_day: Option<i64>,
+    /// 60-day rolling count.
+    pub rolling_60_day: Option<i64>,
+    /// 90-day rolling count.
+    pub rolling_90_day: Option<i64>,
+}
+
+/// Rolling percentages with multiple time windows.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct RollingPercentages {
+    /// 7-day rolling percentage.
+    pub rolling_7_day: Option<f64>,
+    /// 30-day rolling percentage.
+    pub rolling_30_day: Option<f64>,
+    /// 60-day rolling percentage.
+    pub rolling_60_day: Option<f64>,
+    /// 90-day rolling percentage.
+    pub rolling_90_day: Option<f64>,
+}
+
 /// Rolling counts for investor new listings.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct InvestorNewListingsRollingCounts {
     pub date: String,
-    /// 7-day rolling count.
-    pub rolling_7_day_count: Option<i64>,
-    /// 7-day rolling percentage share.
-    pub rolling_7_day_pct: Option<f64>,
-    /// 30-day rolling count.
-    pub rolling_30_day_count: Option<i64>,
-    /// 30-day rolling percentage share.
-    pub rolling_30_day_pct: Option<f64>,
-    /// 60-day rolling count.
-    pub rolling_60_day_count: Option<i64>,
-    /// 60-day rolling percentage share.
-    pub rolling_60_day_pct: Option<f64>,
-    /// 90-day rolling count.
-    pub rolling_90_day_count: Option<i64>,
-    /// 90-day rolling percentage share.
-    pub rolling_90_day_pct: Option<f64>,
+    /// Rolling counts of new listings.
+    pub count: Option<RollingCounts>,
+    /// Percentage of for-sale market by rolling period.
+    pub pct_for_sale_market: Option<RollingPercentages>,
 }
 
 // ============================================================================
@@ -423,13 +435,34 @@ pub struct NewListingsRollingCounts {
 // Rental Metrics
 // ============================================================================
 
-/// Rental market metrics.
+/// Gross rental yield metrics.
 #[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct RentalMetrics {
+pub struct GrossYield {
     pub date: String,
     /// Annual rental income divided by median sale price.
     pub gross_yield: Option<f64>,
+}
+
+/// Rental units concentration metrics.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct RentalUnitsConcentration {
+    pub date: String,
+    /// Percentage of housing stock that are rental units.
     pub rental_units_concentration: Option<f64>,
+}
+
+/// Rolling counts for new rental listings.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct RentalNewListingsRollingCounts {
+    pub date: String,
+    /// 7-day rolling count.
+    pub rolling_7_day_count: Option<i64>,
+    /// 30-day rolling count.
+    pub rolling_30_day_count: Option<i64>,
+    /// 60-day rolling count.
+    pub rolling_60_day_count: Option<i64>,
+    /// 90-day rolling count.
+    pub rolling_90_day_count: Option<i64>,
 }
 
 #[cfg(test)]
@@ -665,17 +698,14 @@ mod tests {
     fn investor_housing_stock_ownership_deserialize() {
         let json = r#"{
             "date": "2024-01-01",
-            "investor_owned_count": 15000,
-            "investor_owned_pct": 12.5,
-            "count_transfers": 500,
-            "pct_transfers": 8.3
+            "count": 15000,
+            "pct_ownership": 12.5
         }"#;
 
         let ownership: InvestorHousingStockOwnership = serde_json::from_str(json).unwrap();
         assert_eq!(ownership.date, "2024-01-01");
         assert_eq!(ownership.investor_owned_count, Some(15000));
         assert!((ownership.investor_owned_pct.unwrap() - 12.5).abs() < f64::EPSILON);
-        assert_eq!(ownership.count_transfers, Some(500));
     }
 
     #[test]
@@ -716,43 +746,50 @@ mod tests {
     fn investor_new_listings_rolling_counts_deserialize() {
         let json = r#"{
             "date": "2024-01-01",
-            "rolling_7_day_count": 10,
-            "rolling_7_day_pct": 5.2,
-            "rolling_30_day_count": 45,
-            "rolling_30_day_pct": 6.1,
-            "rolling_60_day_count": 88,
-            "rolling_60_day_pct": 5.8,
-            "rolling_90_day_count": 130,
-            "rolling_90_day_pct": 5.5
+            "count": {
+                "rolling_7_day": 10,
+                "rolling_30_day": 45,
+                "rolling_60_day": 88,
+                "rolling_90_day": 130
+            },
+            "pct_for_sale_market": {
+                "rolling_7_day": 5.2,
+                "rolling_30_day": 6.1,
+                "rolling_60_day": 5.8,
+                "rolling_90_day": 5.5
+            }
         }"#;
 
         let counts: InvestorNewListingsRollingCounts = serde_json::from_str(json).unwrap();
         assert_eq!(counts.date, "2024-01-01");
-        assert_eq!(counts.rolling_7_day_count, Some(10));
-        assert!((counts.rolling_7_day_pct.unwrap() - 5.2).abs() < f64::EPSILON);
-        assert_eq!(counts.rolling_30_day_count, Some(45));
-        assert_eq!(counts.rolling_90_day_count, Some(130));
+        let c = counts.count.unwrap();
+        assert_eq!(c.rolling_7_day, Some(10));
+        assert_eq!(c.rolling_30_day, Some(45));
+        assert_eq!(c.rolling_90_day, Some(130));
+        let p = counts.pct_for_sale_market.unwrap();
+        assert!((p.rolling_7_day.unwrap() - 5.2).abs() < f64::EPSILON);
     }
 
     #[test]
     fn investor_new_listings_rolling_counts_with_nulls() {
         let json = r#"{
             "date": "2024-01-01",
-            "rolling_7_day_count": null,
-            "rolling_7_day_pct": null,
-            "rolling_30_day_count": 45,
-            "rolling_30_day_pct": 6.1,
-            "rolling_60_day_count": null,
-            "rolling_60_day_pct": null,
-            "rolling_90_day_count": null,
-            "rolling_90_day_pct": null
+            "count": {
+                "rolling_7_day": null,
+                "rolling_30_day": 45,
+                "rolling_60_day": null,
+                "rolling_90_day": null
+            },
+            "pct_for_sale_market": null
         }"#;
 
         let counts: InvestorNewListingsRollingCounts = serde_json::from_str(json).unwrap();
         assert_eq!(counts.date, "2024-01-01");
-        assert!(counts.rolling_7_day_count.is_none());
-        assert_eq!(counts.rolling_30_day_count, Some(45));
-        assert!(counts.rolling_60_day_count.is_none());
+        let c = counts.count.unwrap();
+        assert!(c.rolling_7_day.is_none());
+        assert_eq!(c.rolling_30_day, Some(45));
+        assert!(c.rolling_60_day.is_none());
+        assert!(counts.pct_for_sale_market.is_none());
     }
 
     #[test]
@@ -855,5 +892,59 @@ mod tests {
         assert_eq!(counts.rolling_30_day_count, Some(150));
         assert!(counts.rolling_60_day_count.is_none());
         assert!(counts.rolling_90_day_count.is_none());
+    }
+
+    #[test]
+    fn gross_yield_deserialize() {
+        let json = r#"{
+            "date": "2024-01-01",
+            "gross_yield": 5.25
+        }"#;
+
+        let yield_data: GrossYield = serde_json::from_str(json).unwrap();
+        assert_eq!(yield_data.date, "2024-01-01");
+        assert!((yield_data.gross_yield.unwrap() - 5.25).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn gross_yield_deserialize_with_null() {
+        let json = r#"{
+            "date": "2024-01-01",
+            "gross_yield": null
+        }"#;
+
+        let yield_data: GrossYield = serde_json::from_str(json).unwrap();
+        assert_eq!(yield_data.date, "2024-01-01");
+        assert!(yield_data.gross_yield.is_none());
+    }
+
+    #[test]
+    fn rental_units_concentration_deserialize() {
+        let json = r#"{
+            "date": "2024-01-01",
+            "rental_units_concentration": 35.5
+        }"#;
+
+        let concentration: RentalUnitsConcentration = serde_json::from_str(json).unwrap();
+        assert_eq!(concentration.date, "2024-01-01");
+        assert!((concentration.rental_units_concentration.unwrap() - 35.5).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn rental_new_listings_rolling_counts_deserialize() {
+        let json = r#"{
+            "date": "2024-01-01",
+            "rolling_7_day_count": 25,
+            "rolling_30_day_count": 100,
+            "rolling_60_day_count": 200,
+            "rolling_90_day_count": 300
+        }"#;
+
+        let counts: RentalNewListingsRollingCounts = serde_json::from_str(json).unwrap();
+        assert_eq!(counts.date, "2024-01-01");
+        assert_eq!(counts.rolling_7_day_count, Some(25));
+        assert_eq!(counts.rolling_30_day_count, Some(100));
+        assert_eq!(counts.rolling_60_day_count, Some(200));
+        assert_eq!(counts.rolling_90_day_count, Some(300));
     }
 }
