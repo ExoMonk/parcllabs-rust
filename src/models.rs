@@ -257,6 +257,80 @@ impl std::fmt::Display for PortfolioSize {
     }
 }
 
+/// Event type filter for property event history queries.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EventType {
+    Sale,
+    Listing,
+    Rental,
+    All,
+}
+
+impl EventType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Sale => "SALE",
+            Self::Listing => "LISTING",
+            Self::Rental => "RENTAL",
+            Self::All => "ALL",
+        }
+    }
+}
+
+impl std::fmt::Display for EventType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+/// Institutional investor / entity owner name filter.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EntityOwnerName {
+    Amh,
+    Tricon,
+    InvitationHomes,
+    HomePartnersOfAmerica,
+    ProgressResidential,
+    FirstkeyHomes,
+    Amherst,
+    MaymontHomes,
+    VinebrookHomes,
+    Sfr3,
+    MyCommunityHomes,
+    Blackstone,
+    Bx,
+    Opendoor,
+    Offerpad,
+}
+
+impl EntityOwnerName {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Amh => "AMH",
+            Self::Tricon => "TRICON",
+            Self::InvitationHomes => "INVITATION_HOMES",
+            Self::HomePartnersOfAmerica => "HOME_PARTNERS_OF_AMERICA",
+            Self::ProgressResidential => "PROGRESS_RESIDENTIAL",
+            Self::FirstkeyHomes => "FIRSTKEY_HOMES",
+            Self::Amherst => "AMHERST",
+            Self::MaymontHomes => "MAYMONT_HOMES",
+            Self::VinebrookHomes => "VINEBROOK_HOMES",
+            Self::Sfr3 => "SFR3",
+            Self::MyCommunityHomes => "MY_COMMUNITY_HOMES",
+            Self::Blackstone => "BLACKSTONE",
+            Self::Bx => "BX",
+            Self::Opendoor => "OPENDOOR",
+            Self::Offerpad => "OFFERPAD",
+        }
+    }
+}
+
+impl std::fmt::Display for EntityOwnerName {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
 // ============================================================================
 // Market Metrics
 // ============================================================================
@@ -580,6 +654,278 @@ pub struct PortfolioRentalListingsRollingCounts {
     pub count: Option<RollingCounts>,
     /// Percentage of SF rental market by rolling period.
     pub pct_sf_for_rent_market: Option<RollingPercentages>,
+}
+
+// ============================================================================
+// Property API — Response Models
+// ============================================================================
+
+/// API account/credit usage info returned by property endpoints.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct AccountInfo {
+    pub est_credits_used: Option<i64>,
+    pub est_remaining_credits: Option<i64>,
+}
+
+/// Response from `GET /v1/property/search` and `POST /v1/property/search_address`.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct PropertySearchResponse {
+    pub items: Vec<Property>,
+    pub account: Option<AccountInfo>,
+}
+
+/// A property returned from the v1 property search endpoint.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct Property {
+    pub parcl_property_id: i64,
+    pub address: Option<String>,
+    pub unit: Option<String>,
+    pub city: Option<String>,
+    pub zip_code: Option<String>,
+    pub state_abbreviation: Option<String>,
+    pub county: Option<String>,
+    pub cbsa: Option<String>,
+    pub latitude: Option<f64>,
+    pub longitude: Option<f64>,
+    pub property_type: Option<String>,
+    pub bedrooms: Option<i32>,
+    pub bathrooms: Option<f64>,
+    pub square_footage: Option<i64>,
+    pub year_built: Option<i32>,
+    pub cbsa_parcl_id: Option<i64>,
+    pub county_parcl_id: Option<i64>,
+    pub city_parcl_id: Option<i64>,
+    pub zip_parcl_id: Option<i64>,
+    pub event_count: Option<i64>,
+    pub event_history_sale_flag: Option<i32>,
+    pub event_history_rental_flag: Option<i32>,
+    pub event_history_listing_flag: Option<i32>,
+    pub current_new_construction_flag: Option<i32>,
+    pub current_owner_occupied_flag: Option<i32>,
+    pub current_investor_owned_flag: Option<i32>,
+    pub current_entity_owner_name: Option<String>,
+    pub current_on_market_flag: Option<i32>,
+    pub current_on_market_rental_flag: Option<i32>,
+    pub record_added_date: Option<String>,
+}
+
+/// Response from `POST /v1/property/event_history`.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct PropertyEventHistoryResponse {
+    pub properties: Vec<PropertyWithEvents>,
+}
+
+/// A property with its event history.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct PropertyWithEvents {
+    pub parcl_property_id: i64,
+    pub property_metadata: Option<PropertyMetadata>,
+    pub events: Option<Vec<PropertyEvent>>,
+}
+
+/// Basic property metadata returned with event history.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct PropertyMetadata {
+    pub address: Option<String>,
+    pub city: Option<String>,
+    pub state: Option<String>,
+    pub zip: Option<String>,
+    pub bedrooms: Option<i32>,
+    pub bathrooms: Option<f64>,
+    pub square_footage: Option<i64>,
+    pub year_built: Option<i32>,
+    pub property_type: Option<String>,
+}
+
+/// A single property event (sale, listing, rental).
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct PropertyEvent {
+    pub event_type: Option<String>,
+    pub event_name: Option<String>,
+    pub event_date: Option<String>,
+    pub price: Option<i64>,
+    pub entity_owner_name: Option<String>,
+    pub investor_flag: Option<i32>,
+    pub owner_occupied_flag: Option<i32>,
+    pub new_construction_flag: Option<i32>,
+    pub record_updated_date: Option<String>,
+}
+
+/// Response from `POST /v2/property_search`.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct PropertyV2SearchResponse {
+    pub properties: Vec<PropertyV2>,
+}
+
+/// A property returned from the v2 search endpoint.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct PropertyV2 {
+    pub parcl_property_id: i64,
+    pub property_metadata: Option<PropertyV2Metadata>,
+    pub events: Option<Vec<PropertyV2Event>>,
+}
+
+/// Detailed property metadata from v2 search.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct PropertyV2Metadata {
+    pub bathrooms: Option<f64>,
+    pub bedrooms: Option<i32>,
+    pub sq_ft: Option<i64>,
+    pub year_built: Option<i32>,
+    pub property_type: Option<String>,
+    pub address1: Option<String>,
+    pub address2: Option<String>,
+    pub city: Option<String>,
+    pub state: Option<String>,
+    pub zip5: Option<String>,
+    pub latitude: Option<f64>,
+    pub longitude: Option<f64>,
+    pub city_name: Option<String>,
+    pub county_name: Option<String>,
+    pub metro_name: Option<String>,
+    pub record_added_date: Option<String>,
+    pub current_on_market_flag: Option<i32>,
+    pub current_on_market_rental_flag: Option<i32>,
+    pub current_new_construction_flag: Option<i32>,
+    pub current_owner_occupied_flag: Option<i32>,
+    pub current_investor_owned_flag: Option<i32>,
+    pub current_entity_owner_name: Option<String>,
+}
+
+/// A property event from v2 search (richer than v1).
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct PropertyV2Event {
+    pub event_type: Option<String>,
+    pub event_name: Option<String>,
+    pub event_date: Option<String>,
+    pub entity_owner_name: Option<String>,
+    pub true_sale_index: Option<i32>,
+    pub price: Option<i64>,
+    pub transfer_index: Option<i32>,
+    pub investor_flag: Option<i32>,
+    pub owner_occupied_flag: Option<i32>,
+    pub new_construction_flag: Option<i32>,
+    pub current_owner_flag: Option<i32>,
+    pub record_updated_date: Option<String>,
+}
+
+// ============================================================================
+// Property API — Request Bodies
+// ============================================================================
+
+/// A single address for the address search endpoint.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AddressSearchRequest {
+    pub address: String,
+    pub city: String,
+    pub state_abbreviation: String,
+    pub zip_code: String,
+}
+
+/// Request body for `POST /v2/property_search`.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct PropertyV2SearchRequest {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub parcl_ids: Option<Vec<i64>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub parcl_property_ids: Option<Vec<i64>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub geo_coordinates: Option<GeoCoordinates>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub property_filters: Option<PropertyFilters>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub event_filters: Option<V2EventFilters>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub owner_filters: Option<OwnerFilters>,
+}
+
+/// Geographic search coordinates for v2 property search.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GeoCoordinates {
+    pub latitude: f64,
+    pub longitude: f64,
+    pub radius_miles: f64,
+}
+
+/// Property filters for v2 search request body.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct PropertyFilters {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub include_property_details: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub property_types: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_beds: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_beds: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_baths: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_baths: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_sqft: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_sqft: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_year_built: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_year_built: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub current_entity_owner_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub current_owner_occupied_flag: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub current_investor_owned_flag: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub current_on_market_flag: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub current_on_market_rental_flag: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub current_new_construction_flag: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_record_added_date: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_record_added_date: Option<String>,
+}
+
+/// Event filters for v2 search request body.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct V2EventFilters {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub event_names: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_event_date: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_event_date: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_event_price: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_event_price: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub include_events: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub include_full_event_history: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub is_new_construction: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_record_updated_date: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_record_updated_date: Option<String>,
+}
+
+/// Owner filters for v2 search request body.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct OwnerFilters {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub owner_name: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub entity_seller_name: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub is_current_owner: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub is_investor_owned: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub is_owner_occupied: Option<bool>,
 }
 
 #[cfg(test)]
@@ -1245,5 +1591,242 @@ mod tests {
         assert_eq!(c.rolling_7_day, Some(575));
         let p = data.pct_sf_for_rent_market.unwrap();
         assert!((p.rolling_30_day.unwrap() - 45.04).abs() < f64::EPSILON);
+    }
+
+    // Property API tests
+
+    #[test]
+    fn event_type_as_str() {
+        assert_eq!(EventType::Sale.as_str(), "SALE");
+        assert_eq!(EventType::Listing.as_str(), "LISTING");
+        assert_eq!(EventType::Rental.as_str(), "RENTAL");
+        assert_eq!(EventType::All.as_str(), "ALL");
+    }
+
+    #[test]
+    fn event_type_display() {
+        assert_eq!(format!("{}", EventType::Sale), "SALE");
+    }
+
+    #[test]
+    fn entity_owner_name_as_str() {
+        assert_eq!(EntityOwnerName::Amh.as_str(), "AMH");
+        assert_eq!(EntityOwnerName::InvitationHomes.as_str(), "INVITATION_HOMES");
+        assert_eq!(EntityOwnerName::HomePartnersOfAmerica.as_str(), "HOME_PARTNERS_OF_AMERICA");
+        assert_eq!(EntityOwnerName::Offerpad.as_str(), "OFFERPAD");
+    }
+
+    #[test]
+    fn entity_owner_name_display() {
+        assert_eq!(format!("{}", EntityOwnerName::Tricon), "TRICON");
+    }
+
+    #[test]
+    fn property_deserialize() {
+        let json = r#"{
+            "parcl_property_id": 63325076,
+            "address": "1225 W SCHOOL ST",
+            "unit": null,
+            "city": "CHICAGO",
+            "zip_code": "60657",
+            "state_abbreviation": "IL",
+            "county": "Cook County",
+            "cbsa": "Chicago-Naperville-Elgin",
+            "latitude": 41.941385,
+            "longitude": -87.660019,
+            "property_type": "SINGLE_FAMILY",
+            "bedrooms": 4,
+            "bathrooms": 3.0,
+            "square_footage": 5500,
+            "year_built": 2024,
+            "event_count": 5,
+            "event_history_sale_flag": 1,
+            "current_on_market_flag": 0,
+            "record_added_date": "2024-12-13"
+        }"#;
+
+        let prop: Property = serde_json::from_str(json).unwrap();
+        assert_eq!(prop.parcl_property_id, 63325076);
+        assert_eq!(prop.address, Some("1225 W SCHOOL ST".into()));
+        assert!(prop.unit.is_none());
+        assert_eq!(prop.bedrooms, Some(4));
+        assert!((prop.bathrooms.unwrap() - 3.0).abs() < f64::EPSILON);
+        assert_eq!(prop.square_footage, Some(5500));
+        assert_eq!(prop.event_history_sale_flag, Some(1));
+        assert_eq!(prop.current_on_market_flag, Some(0));
+    }
+
+    #[test]
+    fn property_search_response_deserialize() {
+        let json = r#"{
+            "items": [
+                {
+                    "parcl_property_id": 123,
+                    "address": "456 Main St",
+                    "property_type": "CONDO"
+                }
+            ],
+            "account": {
+                "est_credits_used": 1,
+                "est_remaining_credits": 9999
+            }
+        }"#;
+
+        let resp: PropertySearchResponse = serde_json::from_str(json).unwrap();
+        assert_eq!(resp.items.len(), 1);
+        assert_eq!(resp.items[0].parcl_property_id, 123);
+        let acct = resp.account.unwrap();
+        assert_eq!(acct.est_credits_used, Some(1));
+        assert_eq!(acct.est_remaining_credits, Some(9999));
+    }
+
+    #[test]
+    fn property_event_history_response_deserialize() {
+        let json = r#"{
+            "properties": [
+                {
+                    "parcl_property_id": 63325076,
+                    "property_metadata": {
+                        "address": "1225 W SCHOOL ST",
+                        "city": "CHICAGO",
+                        "state": "IL",
+                        "zip": "60657",
+                        "bedrooms": 4,
+                        "bathrooms": 3.0,
+                        "square_footage": 5500,
+                        "year_built": 2024,
+                        "property_type": "SINGLE_FAMILY"
+                    },
+                    "events": [
+                        {
+                            "event_type": "SALE",
+                            "event_name": "SOLD",
+                            "event_date": "2024-12-20",
+                            "price": 2645000,
+                            "entity_owner_name": null,
+                            "investor_flag": 0,
+                            "owner_occupied_flag": 1,
+                            "new_construction_flag": 1,
+                            "record_updated_date": "2025-07-23"
+                        }
+                    ]
+                }
+            ]
+        }"#;
+
+        let resp: PropertyEventHistoryResponse = serde_json::from_str(json).unwrap();
+        assert_eq!(resp.properties.len(), 1);
+        let prop = &resp.properties[0];
+        assert_eq!(prop.parcl_property_id, 63325076);
+        let meta = prop.property_metadata.as_ref().unwrap();
+        assert_eq!(meta.city, Some("CHICAGO".into()));
+        assert_eq!(meta.bedrooms, Some(4));
+        let events = prop.events.as_ref().unwrap();
+        assert_eq!(events.len(), 1);
+        assert_eq!(events[0].event_name, Some("SOLD".into()));
+        assert_eq!(events[0].price, Some(2645000));
+    }
+
+    #[test]
+    fn property_v2_search_response_deserialize() {
+        let json = r#"{
+            "properties": [
+                {
+                    "parcl_property_id": 63325076,
+                    "property_metadata": {
+                        "bathrooms": 6.0,
+                        "bedrooms": 4,
+                        "sq_ft": 5500,
+                        "year_built": 2024,
+                        "property_type": "SINGLE_FAMILY",
+                        "address1": "1225 W SCHOOL ST",
+                        "city": "CHICAGO",
+                        "state": "IL",
+                        "zip5": "60657",
+                        "latitude": 41.941385,
+                        "longitude": -87.660019,
+                        "city_name": "Chicago City",
+                        "county_name": "Cook County",
+                        "current_on_market_flag": 0,
+                        "current_new_construction_flag": 1
+                    },
+                    "events": [
+                        {
+                            "event_type": "SALE",
+                            "event_name": "SOLD",
+                            "event_date": "2024-12-20",
+                            "price": 2645000,
+                            "true_sale_index": 3,
+                            "transfer_index": 3,
+                            "investor_flag": 0,
+                            "owner_occupied_flag": 1,
+                            "new_construction_flag": 1,
+                            "current_owner_flag": 1,
+                            "record_updated_date": "2025-07-23"
+                        }
+                    ]
+                }
+            ]
+        }"#;
+
+        let resp: PropertyV2SearchResponse = serde_json::from_str(json).unwrap();
+        assert_eq!(resp.properties.len(), 1);
+        let prop = &resp.properties[0];
+        let meta = prop.property_metadata.as_ref().unwrap();
+        assert_eq!(meta.sq_ft, Some(5500));
+        assert_eq!(meta.address1, Some("1225 W SCHOOL ST".into()));
+        assert_eq!(meta.current_new_construction_flag, Some(1));
+        let events = prop.events.as_ref().unwrap();
+        assert_eq!(events[0].true_sale_index, Some(3));
+        assert_eq!(events[0].current_owner_flag, Some(1));
+    }
+
+    #[test]
+    fn address_search_request_serialize() {
+        let req = AddressSearchRequest {
+            address: "1225 W SCHOOL ST".into(),
+            city: "CHICAGO".into(),
+            state_abbreviation: "IL".into(),
+            zip_code: "60657".into(),
+        };
+        let json = serde_json::to_value(&req).unwrap();
+        assert_eq!(json["address"], "1225 W SCHOOL ST");
+        assert_eq!(json["state_abbreviation"], "IL");
+    }
+
+    #[test]
+    fn property_v2_search_request_serialize_minimal() {
+        let req = PropertyV2SearchRequest {
+            parcl_ids: Some(vec![5387853]),
+            ..Default::default()
+        };
+        let json = serde_json::to_value(&req).unwrap();
+        assert_eq!(json["parcl_ids"], serde_json::json!([5387853]));
+        assert!(json.get("property_filters").is_none());
+        assert!(json.get("event_filters").is_none());
+    }
+
+    #[test]
+    fn property_v2_search_request_serialize_full() {
+        let req = PropertyV2SearchRequest {
+            parcl_ids: Some(vec![5387853]),
+            property_filters: Some(PropertyFilters {
+                include_property_details: Some(true),
+                property_types: Some(vec!["SINGLE_FAMILY".into()]),
+                min_beds: Some(3),
+                ..Default::default()
+            }),
+            event_filters: Some(V2EventFilters {
+                include_events: Some(true),
+                event_names: Some(vec!["SOLD".into()]),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+        let json = serde_json::to_value(&req).unwrap();
+        assert_eq!(json["property_filters"]["min_beds"], 3);
+        assert_eq!(json["property_filters"]["include_property_details"], true);
+        assert_eq!(json["event_filters"]["include_events"], true);
+        assert!(json.get("owner_filters").is_none());
     }
 }

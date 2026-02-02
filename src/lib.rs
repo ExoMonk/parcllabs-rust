@@ -41,6 +41,7 @@ pub use endpoints::investor_metrics::InvestorMetricsParams;
 pub use endpoints::market_metrics::MetricsParams;
 pub use endpoints::new_construction_metrics::NewConstructionMetricsParams;
 pub use endpoints::portfolio_metrics::PortfolioMetricsParams;
+pub use endpoints::property::{EventHistoryParams, PropertySearchParams};
 pub use endpoints::rental_metrics::RentalMetricsParams;
 pub use endpoints::search::SearchParams;
 pub use error::{ParclError, Result};
@@ -49,7 +50,7 @@ pub use models::*;
 use endpoints::{
     ForSaleMetricsClient, InvestorMetricsClient, MarketMetricsClient,
     NewConstructionMetricsClient, PriceFeedClient, PortfolioMetricsClient,
-    RentalMetricsClient, SearchClient,
+    PropertyClient, RentalMetricsClient, SearchClient,
 };
 use reqwest::Client;
 use std::env;
@@ -132,6 +133,11 @@ impl ParclClient {
     /// Returns a client for portfolio metrics endpoints.
     pub fn portfolio_metrics(&self) -> PortfolioMetricsClient<'_> {
         PortfolioMetricsClient::new(&self.http, &self.base_url, &self.api_key)
+    }
+
+    /// Returns a client for property API endpoints.
+    pub fn property(&self) -> PropertyClient<'_> {
+        PropertyClient::new(&self.http, &self.base_url, &self.api_key)
     }
 }
 
@@ -233,5 +239,11 @@ mod tests {
     fn client_returns_portfolio_metrics_client() {
         let client = ParclClient::with_api_key("test");
         let _portfolio = client.portfolio_metrics();
+    }
+
+    #[test]
+    fn client_returns_property_client() {
+        let client = ParclClient::with_api_key("test");
+        let _property = client.property();
     }
 }
