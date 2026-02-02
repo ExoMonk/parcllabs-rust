@@ -39,13 +39,16 @@ pub mod models;
 pub use endpoints::for_sale_metrics::ForSaleMetricsParams;
 pub use endpoints::investor_metrics::InvestorMetricsParams;
 pub use endpoints::market_metrics::MetricsParams;
+pub use endpoints::new_construction_metrics::NewConstructionMetricsParams;
+pub use endpoints::portfolio_metrics::PortfolioMetricsParams;
 pub use endpoints::rental_metrics::RentalMetricsParams;
 pub use endpoints::search::SearchParams;
 pub use error::{ParclError, Result};
 pub use models::*;
 
 use endpoints::{
-    ForSaleMetricsClient, InvestorMetricsClient, MarketMetricsClient, PriceFeedClient,
+    ForSaleMetricsClient, InvestorMetricsClient, MarketMetricsClient,
+    NewConstructionMetricsClient, PriceFeedClient, PortfolioMetricsClient,
     RentalMetricsClient, SearchClient,
 };
 use reqwest::Client;
@@ -119,6 +122,16 @@ impl ParclClient {
     /// Returns a client for price feed endpoints.
     pub fn price_feed(&self) -> PriceFeedClient<'_> {
         PriceFeedClient::new(&self.http, &self.base_url, &self.api_key)
+    }
+
+    /// Returns a client for new construction metrics endpoints.
+    pub fn new_construction_metrics(&self) -> NewConstructionMetricsClient<'_> {
+        NewConstructionMetricsClient::new(&self.http, &self.base_url, &self.api_key)
+    }
+
+    /// Returns a client for portfolio metrics endpoints.
+    pub fn portfolio_metrics(&self) -> PortfolioMetricsClient<'_> {
+        PortfolioMetricsClient::new(&self.http, &self.base_url, &self.api_key)
     }
 }
 
@@ -208,5 +221,17 @@ mod tests {
     fn client_returns_rental_metrics_client() {
         let client = ParclClient::with_api_key("test");
         let _rental = client.rental_metrics();
+    }
+
+    #[test]
+    fn client_returns_new_construction_metrics_client() {
+        let client = ParclClient::with_api_key("test");
+        let _new_construction = client.new_construction_metrics();
+    }
+
+    #[test]
+    fn client_returns_portfolio_metrics_client() {
+        let client = ParclClient::with_api_key("test");
+        let _portfolio = client.portfolio_metrics();
     }
 }
