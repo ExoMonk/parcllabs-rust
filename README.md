@@ -307,7 +307,7 @@ cargo run --example batch_metrics            # Multi-market batch queries
 
 ## API Coverage
 
-53 endpoints across 9 services — full parity with the Python SDK.
+53 endpoints across 9 services
 
 | Service | GET Endpoints | Batch POST |
 |---------|--------------|------------|
