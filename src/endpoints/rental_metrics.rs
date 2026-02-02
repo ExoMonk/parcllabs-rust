@@ -129,7 +129,9 @@ impl<'a> RentalMetricsClient<'a> {
         let params = params.unwrap_or_default();
         let url = format!(
             "{}/v1/rental_market_metrics/{}/gross_yield{}",
-            self.client.base_url, parcl_id, params.to_query_string()
+            self.client.base_url,
+            parcl_id,
+            params.to_query_string()
         );
         let resp = super::common::get_with_pagination(
             &self.client.http,
@@ -154,7 +156,9 @@ impl<'a> RentalMetricsClient<'a> {
         let params = params.unwrap_or_default();
         let url = format!(
             "{}/v1/rental_market_metrics/{}/rental_units_concentration{}",
-            self.client.base_url, parcl_id, params.to_query_string()
+            self.client.base_url,
+            parcl_id,
+            params.to_query_string()
         );
         let resp = super::common::get_with_pagination(
             &self.client.http,
@@ -180,7 +184,9 @@ impl<'a> RentalMetricsClient<'a> {
         let params = params.unwrap_or_default();
         let url = format!(
             "{}/v1/rental_market_metrics/{}/new_listings_for_rent_rolling_counts{}",
-            self.client.base_url, parcl_id, params.to_query_string()
+            self.client.base_url,
+            parcl_id,
+            params.to_query_string()
         );
         let resp = super::common::get_with_pagination(
             &self.client.http,
@@ -204,7 +210,10 @@ impl<'a> RentalMetricsClient<'a> {
     ) -> Result<BatchMetricsResponse<GrossYield>> {
         let params = params.unwrap_or_default();
         let body = params.to_batch_body(&parcl_ids);
-        let url = format!("{}/v1/rental_market_metrics/gross_yield", self.client.base_url);
+        let url = format!(
+            "{}/v1/rental_market_metrics/gross_yield",
+            self.client.base_url
+        );
         let resp = super::common::post_with_pagination(
             &self.client.http,
             &self.client.api_key,

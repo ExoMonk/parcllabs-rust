@@ -1,7 +1,9 @@
 //! New construction metrics endpoints for tracking new-build housing data.
 
 use crate::error::Result;
-use crate::models::{BatchMetricsResponse, HousingEventCounts, HousingEventPrices, MetricsResponse, PropertyType};
+use crate::models::{
+    BatchMetricsResponse, HousingEventCounts, HousingEventPrices, MetricsResponse, PropertyType,
+};
 use crate::ParclClient;
 
 /// Client for new construction metrics API endpoints.
@@ -123,7 +125,9 @@ impl<'a> NewConstructionMetricsClient<'a> {
         let params = params.unwrap_or_default();
         let url = format!(
             "{}/v1/new_construction_metrics/{}/housing_event_counts{}",
-            self.client.base_url, parcl_id, params.to_query_string()
+            self.client.base_url,
+            parcl_id,
+            params.to_query_string()
         );
         let resp = super::common::get_with_pagination(
             &self.client.http,
@@ -146,7 +150,9 @@ impl<'a> NewConstructionMetricsClient<'a> {
         let params = params.unwrap_or_default();
         let url = format!(
             "{}/v1/new_construction_metrics/{}/housing_event_prices{}",
-            self.client.base_url, parcl_id, params.to_query_string()
+            self.client.base_url,
+            parcl_id,
+            params.to_query_string()
         );
         let resp = super::common::get_with_pagination(
             &self.client.http,
@@ -170,7 +176,10 @@ impl<'a> NewConstructionMetricsClient<'a> {
     ) -> Result<BatchMetricsResponse<HousingEventCounts>> {
         let params = params.unwrap_or_default();
         let body = params.to_batch_body(&parcl_ids);
-        let url = format!("{}/v1/new_construction_metrics/housing_event_counts", self.client.base_url);
+        let url = format!(
+            "{}/v1/new_construction_metrics/housing_event_counts",
+            self.client.base_url
+        );
         let resp = super::common::post_with_pagination(
             &self.client.http,
             &self.client.api_key,
@@ -192,7 +201,10 @@ impl<'a> NewConstructionMetricsClient<'a> {
     ) -> Result<BatchMetricsResponse<HousingEventPrices>> {
         let params = params.unwrap_or_default();
         let body = params.to_batch_body(&parcl_ids);
-        let url = format!("{}/v1/new_construction_metrics/housing_event_prices", self.client.base_url);
+        let url = format!(
+            "{}/v1/new_construction_metrics/housing_event_prices",
+            self.client.base_url
+        );
         let resp = super::common::post_with_pagination(
             &self.client.http,
             &self.client.api_key,

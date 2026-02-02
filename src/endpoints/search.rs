@@ -199,8 +199,7 @@ impl<'a> SearchClient<'a> {
 
             let status = response.status();
             if status.as_u16() == 429 && attempt < self.client.retry_config.max_retries {
-                let backoff =
-                    self.client.retry_config.initial_backoff_ms * 2u64.pow(attempt);
+                let backoff = self.client.retry_config.initial_backoff_ms * 2u64.pow(attempt);
                 tokio::time::sleep(std::time::Duration::from_millis(backoff)).await;
                 continue;
             }

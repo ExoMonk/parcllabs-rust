@@ -3,8 +3,8 @@
 //! Usage: cargo run --example property_search
 
 use parcllabs::{
-    AddressSearchRequest, EventHistoryParams, EventType, ParclClient, PropertySearchParams,
-    PropertyType, PropertyV2SearchRequest, PropertyFilters, V2EventFilters,
+    AddressSearchRequest, EventHistoryParams, EventType, ParclClient, PropertyFilters,
+    PropertySearchParams, PropertyType, PropertyV2SearchRequest, V2EventFilters,
 };
 
 #[tokio::main]

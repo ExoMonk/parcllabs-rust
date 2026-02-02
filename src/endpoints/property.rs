@@ -2,8 +2,8 @@
 
 use crate::error::{ParclError, Result};
 use crate::models::{
-    AddressSearchRequest, EntityOwnerName, EventType, PropertyEventHistoryResponse, PropertyType,
-    PropertySearchResponse, PropertyV2SearchRequest, PropertyV2SearchResponse,
+    AddressSearchRequest, EntityOwnerName, EventType, PropertyEventHistoryResponse,
+    PropertySearchResponse, PropertyType, PropertyV2SearchRequest, PropertyV2SearchResponse,
 };
 use crate::ParclClient;
 use serde::de::DeserializeOwned;
@@ -346,10 +346,7 @@ impl<'a> PropertyClient<'a> {
     /// Search properties in a market by filters.
     ///
     /// `GET /v1/property/search`
-    pub async fn search(
-        &self,
-        params: PropertySearchParams,
-    ) -> Result<PropertySearchResponse> {
+    pub async fn search(&self, params: PropertySearchParams) -> Result<PropertySearchResponse> {
         let query = params.to_query_string();
         let url = format!("{}/v1/property/search{}", self.client.base_url, query);
         let resp: PropertySearchResponse = self.fetch_get(&url).await?;
@@ -419,8 +416,7 @@ impl<'a> PropertyClient<'a> {
 
             let status = response.status();
             if status.as_u16() == 429 && attempt < self.client.retry_config.max_retries {
-                let backoff =
-                    self.client.retry_config.initial_backoff_ms * 2u64.pow(attempt);
+                let backoff = self.client.retry_config.initial_backoff_ms * 2u64.pow(attempt);
                 tokio::time::sleep(std::time::Duration::from_millis(backoff)).await;
                 continue;
             }
@@ -462,8 +458,7 @@ impl<'a> PropertyClient<'a> {
 
             let status = response.status();
             if status.as_u16() == 429 && attempt < self.client.retry_config.max_retries {
-                let backoff =
-                    self.client.retry_config.initial_backoff_ms * 2u64.pow(attempt);
+                let backoff = self.client.retry_config.initial_backoff_ms * 2u64.pow(attempt);
                 tokio::time::sleep(std::time::Duration::from_millis(backoff)).await;
                 continue;
             }

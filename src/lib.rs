@@ -49,9 +49,8 @@ pub use models::*;
 // RetryConfig is defined in this module (not models), so no re-export needed.
 
 use endpoints::{
-    ForSaleMetricsClient, InvestorMetricsClient, MarketMetricsClient,
-    NewConstructionMetricsClient, PriceFeedClient, PortfolioMetricsClient,
-    PropertyClient, RentalMetricsClient, SearchClient,
+    ForSaleMetricsClient, InvestorMetricsClient, MarketMetricsClient, NewConstructionMetricsClient,
+    PortfolioMetricsClient, PriceFeedClient, PropertyClient, RentalMetricsClient, SearchClient,
 };
 use reqwest::Client;
 use std::env;

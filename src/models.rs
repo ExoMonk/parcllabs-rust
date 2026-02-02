@@ -1464,7 +1464,10 @@ mod tests {
     #[test]
     fn portfolio_size_as_str() {
         assert_eq!(PortfolioSize::Portfolio2To9.as_str(), "PORTFOLIO_2_TO_9");
-        assert_eq!(PortfolioSize::Portfolio10To99.as_str(), "PORTFOLIO_10_TO_99");
+        assert_eq!(
+            PortfolioSize::Portfolio10To99.as_str(),
+            "PORTFOLIO_10_TO_99"
+        );
         assert_eq!(
             PortfolioSize::Portfolio100To999.as_str(),
             "PORTFOLIO_100_TO_999"
@@ -1654,8 +1657,14 @@ mod tests {
     #[test]
     fn entity_owner_name_as_str() {
         assert_eq!(EntityOwnerName::Amh.as_str(), "AMH");
-        assert_eq!(EntityOwnerName::InvitationHomes.as_str(), "INVITATION_HOMES");
-        assert_eq!(EntityOwnerName::HomePartnersOfAmerica.as_str(), "HOME_PARTNERS_OF_AMERICA");
+        assert_eq!(
+            EntityOwnerName::InvitationHomes.as_str(),
+            "INVITATION_HOMES"
+        );
+        assert_eq!(
+            EntityOwnerName::HomePartnersOfAmerica.as_str(),
+            "HOME_PARTNERS_OF_AMERICA"
+        );
         assert_eq!(EntityOwnerName::Offerpad.as_str(), "OFFERPAD");
     }
 

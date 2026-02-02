@@ -24,7 +24,9 @@ impl<'a> PriceFeedClient<'a> {
         let params = params.unwrap_or_default();
         let url = format!(
             "{}/v1/price_feed/{}/history{}",
-            self.client.base_url, parcl_id, params.to_query_string()
+            self.client.base_url,
+            parcl_id,
+            params.to_query_string()
         );
         let resp = super::common::get_with_pagination(
             &self.client.http,
@@ -47,7 +49,9 @@ impl<'a> PriceFeedClient<'a> {
         let params = params.unwrap_or_default();
         let url = format!(
             "{}/v1/price_feed/{}/rental_price_feed{}",
-            self.client.base_url, parcl_id, params.to_query_string()
+            self.client.base_url,
+            parcl_id,
+            params.to_query_string()
         );
         let resp = super::common::get_with_pagination(
             &self.client.http,

@@ -127,7 +127,9 @@ impl<'a> PortfolioMetricsClient<'a> {
         let params = params.unwrap_or_default();
         let url = format!(
             "{}/v1/portfolio_metrics/{}/sf_housing_stock_ownership{}",
-            self.client.base_url, parcl_id, params.to_query_string()
+            self.client.base_url,
+            parcl_id,
+            params.to_query_string()
         );
         let resp = super::common::get_with_pagination(
             &self.client.http,
@@ -150,7 +152,9 @@ impl<'a> PortfolioMetricsClient<'a> {
         let params = params.unwrap_or_default();
         let url = format!(
             "{}/v1/portfolio_metrics/{}/sf_housing_event_counts{}",
-            self.client.base_url, parcl_id, params.to_query_string()
+            self.client.base_url,
+            parcl_id,
+            params.to_query_string()
         );
         let resp = super::common::get_with_pagination(
             &self.client.http,
@@ -173,7 +177,9 @@ impl<'a> PortfolioMetricsClient<'a> {
         let params = params.unwrap_or_default();
         let url = format!(
             "{}/v1/portfolio_metrics/{}/sf_new_listings_for_sale_rolling_counts{}",
-            self.client.base_url, parcl_id, params.to_query_string()
+            self.client.base_url,
+            parcl_id,
+            params.to_query_string()
         );
         let resp = super::common::get_with_pagination(
             &self.client.http,
@@ -196,7 +202,9 @@ impl<'a> PortfolioMetricsClient<'a> {
         let params = params.unwrap_or_default();
         let url = format!(
             "{}/v1/portfolio_metrics/{}/sf_new_listings_for_rent_rolling_counts{}",
-            self.client.base_url, parcl_id, params.to_query_string()
+            self.client.base_url,
+            parcl_id,
+            params.to_query_string()
         );
         let resp = super::common::get_with_pagination(
             &self.client.http,
@@ -220,7 +228,10 @@ impl<'a> PortfolioMetricsClient<'a> {
     ) -> Result<BatchMetricsResponse<PortfolioStockOwnership>> {
         let params = params.unwrap_or_default();
         let body = params.to_batch_body(&parcl_ids);
-        let url = format!("{}/v1/portfolio_metrics/sf_housing_stock_ownership", self.client.base_url);
+        let url = format!(
+            "{}/v1/portfolio_metrics/sf_housing_stock_ownership",
+            self.client.base_url
+        );
         let resp = super::common::post_with_pagination(
             &self.client.http,
             &self.client.api_key,
@@ -242,7 +253,10 @@ impl<'a> PortfolioMetricsClient<'a> {
     ) -> Result<BatchMetricsResponse<PortfolioHousingEventCounts>> {
         let params = params.unwrap_or_default();
         let body = params.to_batch_body(&parcl_ids);
-        let url = format!("{}/v1/portfolio_metrics/sf_housing_event_counts", self.client.base_url);
+        let url = format!(
+            "{}/v1/portfolio_metrics/sf_housing_event_counts",
+            self.client.base_url
+        );
         let resp = super::common::post_with_pagination(
             &self.client.http,
             &self.client.api_key,
@@ -337,10 +351,7 @@ mod tests {
         assert_eq!(params.offset, Some(20));
         assert_eq!(params.start_date, Some("2024-01-01".into()));
         assert_eq!(params.end_date, Some("2024-12-31".into()));
-        assert_eq!(
-            params.portfolio_size,
-            Some(PortfolioSize::Portfolio10To99)
-        );
+        assert_eq!(params.portfolio_size, Some(PortfolioSize::Portfolio10To99));
         assert!(params.auto_paginate);
     }
 
@@ -370,19 +381,13 @@ mod tests {
 
     #[test]
     fn portfolio_params_query_string_portfolio_size_only() {
-        let params =
-            PortfolioMetricsParams::new().portfolio_size(PortfolioSize::Portfolio2To9);
-        assert_eq!(
-            params.to_query_string(),
-            "?portfolio_size=PORTFOLIO_2_TO_9"
-        );
+        let params = PortfolioMetricsParams::new().portfolio_size(PortfolioSize::Portfolio2To9);
+        assert_eq!(params.to_query_string(), "?portfolio_size=PORTFOLIO_2_TO_9");
     }
 
     #[test]
     fn portfolio_params_auto_paginate_not_in_query() {
-        let params = PortfolioMetricsParams::new()
-            .limit(5)
-            .auto_paginate(true);
+        let params = PortfolioMetricsParams::new().limit(5).auto_paginate(true);
         let qs = params.to_query_string();
         assert!(!qs.contains("auto_paginate"));
         assert!(qs.contains("limit=5"));

@@ -3,8 +3,8 @@
 use crate::error::Result;
 use crate::models::{
     BatchMetricsResponse, HousingEventPrices, InvestorHousingEventCounts,
-    InvestorHousingStockOwnership, InvestorNewListingsRollingCounts,
-    InvestorPurchaseToSaleRatio, MetricsResponse, PropertyType,
+    InvestorHousingStockOwnership, InvestorNewListingsRollingCounts, InvestorPurchaseToSaleRatio,
+    MetricsResponse, PropertyType,
 };
 use crate::ParclClient;
 
@@ -127,7 +127,9 @@ impl<'a> InvestorMetricsClient<'a> {
         let params = params.unwrap_or_default();
         let url = format!(
             "{}/v1/investor_metrics/{}/housing_stock_ownership{}",
-            self.client.base_url, parcl_id, params.to_query_string()
+            self.client.base_url,
+            parcl_id,
+            params.to_query_string()
         );
         let resp = super::common::get_with_pagination(
             &self.client.http,
@@ -150,7 +152,9 @@ impl<'a> InvestorMetricsClient<'a> {
         let params = params.unwrap_or_default();
         let url = format!(
             "{}/v1/investor_metrics/{}/purchase_to_sale_ratio{}",
-            self.client.base_url, parcl_id, params.to_query_string()
+            self.client.base_url,
+            parcl_id,
+            params.to_query_string()
         );
         let resp = super::common::get_with_pagination(
             &self.client.http,
@@ -173,7 +177,9 @@ impl<'a> InvestorMetricsClient<'a> {
         let params = params.unwrap_or_default();
         let url = format!(
             "{}/v1/investor_metrics/{}/housing_event_counts{}",
-            self.client.base_url, parcl_id, params.to_query_string()
+            self.client.base_url,
+            parcl_id,
+            params.to_query_string()
         );
         let resp = super::common::get_with_pagination(
             &self.client.http,
@@ -196,7 +202,9 @@ impl<'a> InvestorMetricsClient<'a> {
         let params = params.unwrap_or_default();
         let url = format!(
             "{}/v1/investor_metrics/{}/housing_event_prices{}",
-            self.client.base_url, parcl_id, params.to_query_string()
+            self.client.base_url,
+            parcl_id,
+            params.to_query_string()
         );
         let resp = super::common::get_with_pagination(
             &self.client.http,
@@ -219,7 +227,9 @@ impl<'a> InvestorMetricsClient<'a> {
         let params = params.unwrap_or_default();
         let url = format!(
             "{}/v1/investor_metrics/{}/new_listings_for_sale_rolling_counts{}",
-            self.client.base_url, parcl_id, params.to_query_string()
+            self.client.base_url,
+            parcl_id,
+            params.to_query_string()
         );
         let resp = super::common::get_with_pagination(
             &self.client.http,
@@ -243,7 +253,10 @@ impl<'a> InvestorMetricsClient<'a> {
     ) -> Result<BatchMetricsResponse<InvestorHousingStockOwnership>> {
         let params = params.unwrap_or_default();
         let body = params.to_batch_body(&parcl_ids);
-        let url = format!("{}/v1/investor_metrics/housing_stock_ownership", self.client.base_url);
+        let url = format!(
+            "{}/v1/investor_metrics/housing_stock_ownership",
+            self.client.base_url
+        );
         let resp = super::common::post_with_pagination(
             &self.client.http,
             &self.client.api_key,
@@ -265,7 +278,10 @@ impl<'a> InvestorMetricsClient<'a> {
     ) -> Result<BatchMetricsResponse<InvestorPurchaseToSaleRatio>> {
         let params = params.unwrap_or_default();
         let body = params.to_batch_body(&parcl_ids);
-        let url = format!("{}/v1/investor_metrics/purchase_to_sale_ratio", self.client.base_url);
+        let url = format!(
+            "{}/v1/investor_metrics/purchase_to_sale_ratio",
+            self.client.base_url
+        );
         let resp = super::common::post_with_pagination(
             &self.client.http,
             &self.client.api_key,
@@ -287,7 +303,10 @@ impl<'a> InvestorMetricsClient<'a> {
     ) -> Result<BatchMetricsResponse<InvestorHousingEventCounts>> {
         let params = params.unwrap_or_default();
         let body = params.to_batch_body(&parcl_ids);
-        let url = format!("{}/v1/investor_metrics/housing_event_counts", self.client.base_url);
+        let url = format!(
+            "{}/v1/investor_metrics/housing_event_counts",
+            self.client.base_url
+        );
         let resp = super::common::post_with_pagination(
             &self.client.http,
             &self.client.api_key,
@@ -309,7 +328,10 @@ impl<'a> InvestorMetricsClient<'a> {
     ) -> Result<BatchMetricsResponse<HousingEventPrices>> {
         let params = params.unwrap_or_default();
         let body = params.to_batch_body(&parcl_ids);
-        let url = format!("{}/v1/investor_metrics/housing_event_prices", self.client.base_url);
+        let url = format!(
+            "{}/v1/investor_metrics/housing_event_prices",
+            self.client.base_url
+        );
         let resp = super::common::post_with_pagination(
             &self.client.http,
             &self.client.api_key,
@@ -331,7 +353,10 @@ impl<'a> InvestorMetricsClient<'a> {
     ) -> Result<BatchMetricsResponse<InvestorNewListingsRollingCounts>> {
         let params = params.unwrap_or_default();
         let body = params.to_batch_body(&parcl_ids);
-        let url = format!("{}/v1/investor_metrics/new_listings_for_sale_rolling_counts", self.client.base_url);
+        let url = format!(
+            "{}/v1/investor_metrics/new_listings_for_sale_rolling_counts",
+            self.client.base_url
+        );
         let resp = super::common::post_with_pagination(
             &self.client.http,
             &self.client.api_key,

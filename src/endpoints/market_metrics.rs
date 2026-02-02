@@ -126,7 +126,9 @@ impl<'a> MarketMetricsClient<'a> {
         let params = params.unwrap_or_default();
         let url = format!(
             "{}/v1/market_metrics/{}/housing_event_counts{}",
-            self.client.base_url, parcl_id, params.to_query_string()
+            self.client.base_url,
+            parcl_id,
+            params.to_query_string()
         );
         let resp = super::common::get_with_pagination(
             &self.client.http,
@@ -149,7 +151,9 @@ impl<'a> MarketMetricsClient<'a> {
         let params = params.unwrap_or_default();
         let url = format!(
             "{}/v1/market_metrics/{}/housing_stock{}",
-            self.client.base_url, parcl_id, params.to_query_string()
+            self.client.base_url,
+            parcl_id,
+            params.to_query_string()
         );
         let resp = super::common::get_with_pagination(
             &self.client.http,
@@ -172,7 +176,9 @@ impl<'a> MarketMetricsClient<'a> {
         let params = params.unwrap_or_default();
         let url = format!(
             "{}/v1/market_metrics/{}/housing_event_prices{}",
-            self.client.base_url, parcl_id, params.to_query_string()
+            self.client.base_url,
+            parcl_id,
+            params.to_query_string()
         );
         let resp = super::common::get_with_pagination(
             &self.client.http,
@@ -195,7 +201,9 @@ impl<'a> MarketMetricsClient<'a> {
         let params = params.unwrap_or_default();
         let url = format!(
             "{}/v1/market_metrics/{}/all_cash{}",
-            self.client.base_url, parcl_id, params.to_query_string()
+            self.client.base_url,
+            parcl_id,
+            params.to_query_string()
         );
         let resp = super::common::get_with_pagination(
             &self.client.http,
@@ -218,7 +226,9 @@ impl<'a> MarketMetricsClient<'a> {
         let params = params.unwrap_or_default();
         let url = format!(
             "{}/v1/market_metrics/{}/housing_event_property_attributes{}",
-            self.client.base_url, parcl_id, params.to_query_string()
+            self.client.base_url,
+            parcl_id,
+            params.to_query_string()
         );
         let resp = super::common::get_with_pagination(
             &self.client.http,
@@ -242,7 +252,10 @@ impl<'a> MarketMetricsClient<'a> {
     ) -> Result<BatchMetricsResponse<HousingEventCounts>> {
         let params = params.unwrap_or_default();
         let body = params.to_batch_body(&parcl_ids);
-        let url = format!("{}/v1/market_metrics/housing_event_counts", self.client.base_url);
+        let url = format!(
+            "{}/v1/market_metrics/housing_event_counts",
+            self.client.base_url
+        );
         let resp = super::common::post_with_pagination(
             &self.client.http,
             &self.client.api_key,
@@ -286,7 +299,10 @@ impl<'a> MarketMetricsClient<'a> {
     ) -> Result<BatchMetricsResponse<HousingEventPrices>> {
         let params = params.unwrap_or_default();
         let body = params.to_batch_body(&parcl_ids);
-        let url = format!("{}/v1/market_metrics/housing_event_prices", self.client.base_url);
+        let url = format!(
+            "{}/v1/market_metrics/housing_event_prices",
+            self.client.base_url
+        );
         let resp = super::common::post_with_pagination(
             &self.client.http,
             &self.client.api_key,

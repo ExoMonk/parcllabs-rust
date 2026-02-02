@@ -129,7 +129,9 @@ impl<'a> ForSaleMetricsClient<'a> {
         let params = params.unwrap_or_default();
         let url = format!(
             "{}/v1/for_sale_market_metrics/{}/for_sale_inventory{}",
-            self.client.base_url, parcl_id, params.to_query_string()
+            self.client.base_url,
+            parcl_id,
+            params.to_query_string()
         );
         let resp = super::common::get_with_pagination(
             &self.client.http,
@@ -156,7 +158,9 @@ impl<'a> ForSaleMetricsClient<'a> {
         let params = params.unwrap_or_default();
         let url = format!(
             "{}/v1/for_sale_market_metrics/{}/for_sale_inventory_price_changes{}",
-            self.client.base_url, parcl_id, params.to_query_string()
+            self.client.base_url,
+            parcl_id,
+            params.to_query_string()
         );
         let resp = super::common::get_with_pagination(
             &self.client.http,
@@ -182,7 +186,9 @@ impl<'a> ForSaleMetricsClient<'a> {
         let params = params.unwrap_or_default();
         let url = format!(
             "{}/v1/for_sale_market_metrics/{}/new_listings_rolling_counts{}",
-            self.client.base_url, parcl_id, params.to_query_string()
+            self.client.base_url,
+            parcl_id,
+            params.to_query_string()
         );
         let resp = super::common::get_with_pagination(
             &self.client.http,
@@ -206,7 +212,10 @@ impl<'a> ForSaleMetricsClient<'a> {
     ) -> Result<BatchMetricsResponse<ForSaleInventory>> {
         let params = params.unwrap_or_default();
         let body = params.to_batch_body(&parcl_ids);
-        let url = format!("{}/v1/for_sale_market_metrics/for_sale_inventory", self.client.base_url);
+        let url = format!(
+            "{}/v1/for_sale_market_metrics/for_sale_inventory",
+            self.client.base_url
+        );
         let resp = super::common::post_with_pagination(
             &self.client.http,
             &self.client.api_key,
@@ -228,7 +237,10 @@ impl<'a> ForSaleMetricsClient<'a> {
     ) -> Result<BatchMetricsResponse<ForSaleInventoryPriceChanges>> {
         let params = params.unwrap_or_default();
         let body = params.to_batch_body(&parcl_ids);
-        let url = format!("{}/v1/for_sale_market_metrics/for_sale_inventory_price_changes", self.client.base_url);
+        let url = format!(
+            "{}/v1/for_sale_market_metrics/for_sale_inventory_price_changes",
+            self.client.base_url
+        );
         let resp = super::common::post_with_pagination(
             &self.client.http,
             &self.client.api_key,
@@ -250,7 +262,10 @@ impl<'a> ForSaleMetricsClient<'a> {
     ) -> Result<BatchMetricsResponse<NewListingsRollingCounts>> {
         let params = params.unwrap_or_default();
         let body = params.to_batch_body(&parcl_ids);
-        let url = format!("{}/v1/for_sale_market_metrics/new_listings_rolling_counts", self.client.base_url);
+        let url = format!(
+            "{}/v1/for_sale_market_metrics/new_listings_rolling_counts",
+            self.client.base_url
+        );
         let resp = super::common::post_with_pagination(
             &self.client.http,
             &self.client.api_key,
