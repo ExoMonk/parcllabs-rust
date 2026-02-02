@@ -2,7 +2,7 @@
 
 use crate::endpoints::market_metrics::MetricsParams;
 use crate::error::{ParclError, Result};
-use crate::models::{MetricsResponse, PriceFeedEntry};
+use crate::models::{BatchMetricsResponse, MetricsResponse, PriceFeedEntry};
 use reqwest::Client;
 
 /// Client for price feed API endpoints.
@@ -51,6 +51,46 @@ impl<'a> PriceFeedClient<'a> {
             self.base_url, parcl_id, query
         );
         self.fetch_with_pagination(&url, auto_paginate).await
+    }
+
+    // --- Batch POST methods ---
+
+    /// Batch retrieves historical price feed data for multiple markets.
+    pub async fn batch_history(
+        &self,
+        parcl_ids: Vec<i64>,
+        params: Option<MetricsParams>,
+    ) -> Result<BatchMetricsResponse<PriceFeedEntry>> {
+        let params = params.unwrap_or_default();
+        let body = params.to_batch_body(&parcl_ids);
+        let url = format!("{}/v1/price_feed/history", self.base_url);
+        super::common::post_with_pagination(
+            self.http,
+            self.api_key,
+            &url,
+            &body,
+            params.auto_paginate,
+        )
+        .await
+    }
+
+    /// Batch retrieves historical rental price feed data for multiple markets.
+    pub async fn batch_rental_history(
+        &self,
+        parcl_ids: Vec<i64>,
+        params: Option<MetricsParams>,
+    ) -> Result<BatchMetricsResponse<PriceFeedEntry>> {
+        let params = params.unwrap_or_default();
+        let body = params.to_batch_body(&parcl_ids);
+        let url = format!("{}/v1/price_feed/rental_price_feed", self.base_url);
+        super::common::post_with_pagination(
+            self.http,
+            self.api_key,
+            &url,
+            &body,
+            params.auto_paginate,
+        )
+        .await
     }
 
     async fn fetch_with_pagination(

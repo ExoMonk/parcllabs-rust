@@ -2,8 +2,9 @@
 
 use crate::error::{ParclError, Result};
 use crate::models::{
-    HousingEventPrices, InvestorHousingEventCounts, InvestorHousingStockOwnership,
-    InvestorNewListingsRollingCounts, InvestorPurchaseToSaleRatio, MetricsResponse, PropertyType,
+    BatchMetricsResponse, HousingEventPrices, InvestorHousingEventCounts,
+    InvestorHousingStockOwnership, InvestorNewListingsRollingCounts,
+    InvestorPurchaseToSaleRatio, MetricsResponse, PropertyType,
 };
 use reqwest::Client;
 
@@ -90,6 +91,27 @@ impl InvestorMetricsParams {
         } else {
             format!("?{}", params.join("&"))
         }
+    }
+
+    pub(crate) fn to_batch_body(&self, parcl_ids: &[i64]) -> serde_json::Value {
+        let mut body = serde_json::json!({ "parcl_id": parcl_ids });
+        let obj = body.as_object_mut().unwrap();
+        if let Some(l) = self.limit {
+            obj.insert("limit".into(), serde_json::json!(l));
+        }
+        if let Some(o) = self.offset {
+            obj.insert("offset".into(), serde_json::json!(o));
+        }
+        if let Some(ref s) = self.start_date {
+            obj.insert("start_date".into(), serde_json::json!(s));
+        }
+        if let Some(ref e) = self.end_date {
+            obj.insert("end_date".into(), serde_json::json!(e));
+        }
+        if let Some(pt) = self.property_type {
+            obj.insert("property_type".into(), serde_json::json!(pt.as_str()));
+        }
+        body
     }
 }
 
@@ -180,6 +202,103 @@ impl<'a> InvestorMetricsClient<'a> {
             self.base_url, parcl_id, query
         );
         self.fetch_with_pagination(&url, auto_paginate).await
+    }
+
+    // --- Batch POST methods ---
+
+    /// Batch retrieves housing stock ownership for multiple markets.
+    pub async fn batch_housing_stock_ownership(
+        &self,
+        parcl_ids: Vec<i64>,
+        params: Option<InvestorMetricsParams>,
+    ) -> Result<BatchMetricsResponse<InvestorHousingStockOwnership>> {
+        let params = params.unwrap_or_default();
+        let body = params.to_batch_body(&parcl_ids);
+        let url = format!("{}/v1/investor_metrics/housing_stock_ownership", self.base_url);
+        super::common::post_with_pagination(
+            self.http,
+            self.api_key,
+            &url,
+            &body,
+            params.auto_paginate,
+        )
+        .await
+    }
+
+    /// Batch retrieves purchase-to-sale ratio for multiple markets.
+    pub async fn batch_purchase_to_sale_ratio(
+        &self,
+        parcl_ids: Vec<i64>,
+        params: Option<InvestorMetricsParams>,
+    ) -> Result<BatchMetricsResponse<InvestorPurchaseToSaleRatio>> {
+        let params = params.unwrap_or_default();
+        let body = params.to_batch_body(&parcl_ids);
+        let url = format!("{}/v1/investor_metrics/purchase_to_sale_ratio", self.base_url);
+        super::common::post_with_pagination(
+            self.http,
+            self.api_key,
+            &url,
+            &body,
+            params.auto_paginate,
+        )
+        .await
+    }
+
+    /// Batch retrieves housing event counts for multiple markets.
+    pub async fn batch_housing_event_counts(
+        &self,
+        parcl_ids: Vec<i64>,
+        params: Option<InvestorMetricsParams>,
+    ) -> Result<BatchMetricsResponse<InvestorHousingEventCounts>> {
+        let params = params.unwrap_or_default();
+        let body = params.to_batch_body(&parcl_ids);
+        let url = format!("{}/v1/investor_metrics/housing_event_counts", self.base_url);
+        super::common::post_with_pagination(
+            self.http,
+            self.api_key,
+            &url,
+            &body,
+            params.auto_paginate,
+        )
+        .await
+    }
+
+    /// Batch retrieves housing event prices for multiple markets.
+    pub async fn batch_housing_event_prices(
+        &self,
+        parcl_ids: Vec<i64>,
+        params: Option<InvestorMetricsParams>,
+    ) -> Result<BatchMetricsResponse<HousingEventPrices>> {
+        let params = params.unwrap_or_default();
+        let body = params.to_batch_body(&parcl_ids);
+        let url = format!("{}/v1/investor_metrics/housing_event_prices", self.base_url);
+        super::common::post_with_pagination(
+            self.http,
+            self.api_key,
+            &url,
+            &body,
+            params.auto_paginate,
+        )
+        .await
+    }
+
+    /// Batch retrieves new listings for sale rolling counts for multiple markets.
+    pub async fn batch_new_listings_for_sale_rolling_counts(
+        &self,
+        parcl_ids: Vec<i64>,
+        params: Option<InvestorMetricsParams>,
+    ) -> Result<BatchMetricsResponse<InvestorNewListingsRollingCounts>> {
+        let params = params.unwrap_or_default();
+        let body = params.to_batch_body(&parcl_ids);
+        let url = format!("{}/v1/investor_metrics/new_listings_for_sale_rolling_counts", self.base_url);
+        super::common::post_with_pagination(
+            self.http,
+            self.api_key,
+            &url,
+            &body,
+            params.auto_paginate,
+        )
+        .await
     }
 
     async fn fetch_with_pagination<T: serde::de::DeserializeOwned>(
@@ -280,5 +399,32 @@ mod tests {
         assert!(qs.contains("start_date=2024-01-01"));
         assert!(qs.contains("end_date=2024-12-31"));
         assert!(qs.contains("property_type=SINGLE_FAMILY"));
+    }
+
+    #[test]
+    fn investor_params_batch_body_minimal() {
+        let params = InvestorMetricsParams::new();
+        let body = params.to_batch_body(&[100, 200]);
+        let obj = body.as_object().unwrap();
+        assert_eq!(obj["parcl_id"], serde_json::json!([100, 200]));
+        assert!(!obj.contains_key("limit"));
+    }
+
+    #[test]
+    fn investor_params_batch_body_all_fields() {
+        let params = InvestorMetricsParams::new()
+            .limit(10)
+            .offset(5)
+            .start_date("2024-01-01")
+            .end_date("2024-12-31")
+            .property_type(PropertyType::SingleFamily);
+        let body = params.to_batch_body(&[100]);
+        let obj = body.as_object().unwrap();
+        assert_eq!(obj["parcl_id"], serde_json::json!([100]));
+        assert_eq!(obj["limit"], 10);
+        assert_eq!(obj["offset"], 5);
+        assert_eq!(obj["start_date"], "2024-01-01");
+        assert_eq!(obj["end_date"], "2024-12-31");
+        assert_eq!(obj["property_type"], "SINGLE_FAMILY");
     }
 }

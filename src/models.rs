@@ -23,6 +23,16 @@ pub struct MetricsResponse<T> {
     pub links: PaginationLinks,
 }
 
+/// Paginated response for batch POST requests (no top-level parcl_id).
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct BatchMetricsResponse<T> {
+    pub items: Vec<T>,
+    pub total: u64,
+    pub limit: u64,
+    pub offset: u64,
+    pub links: PaginationLinks,
+}
+
 /// Navigation links for paginated responses.
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
 pub struct PaginationLinks {
@@ -338,6 +348,7 @@ impl std::fmt::Display for EntityOwnerName {
 /// Housing transaction and listing counts.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct HousingEventCounts {
+    pub parcl_id: Option<i64>,
     pub date: String,
     pub sales: Option<i64>,
     pub new_listings_for_sale: Option<i64>,
@@ -347,6 +358,7 @@ pub struct HousingEventCounts {
 /// Housing unit counts by property type.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct HousingStock {
+    pub parcl_id: Option<i64>,
     pub date: String,
     pub single_family: Option<i64>,
     pub condo: Option<i64>,
@@ -358,6 +370,7 @@ pub struct HousingStock {
 /// Housing event prices with statistical breakdowns.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct HousingEventPrices {
+    pub parcl_id: Option<i64>,
     pub date: String,
     pub price: Option<PriceStats>,
     pub price_per_square_foot: Option<PriceStats>,
@@ -383,6 +396,7 @@ pub struct EventPrices {
 /// All-cash transaction metrics.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct AllCash {
+    pub parcl_id: Option<i64>,
     pub date: String,
     /// Count of all-cash arms-length sales.
     pub count_sales: Option<i64>,
@@ -397,6 +411,7 @@ pub struct AllCash {
 /// Physical attributes of properties involved in housing events.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct HousingEventPropertyAttributes {
+    pub parcl_id: Option<i64>,
     pub date: String,
     /// Median bedroom count.
     pub beds: Option<i64>,
@@ -417,6 +432,7 @@ pub struct HousingEventPropertyAttributes {
 /// Price feed data point for trading.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct PriceFeedEntry {
+    pub parcl_id: Option<i64>,
     pub date: String,
     pub price: f64,
     pub price_feed_type: Option<String>,
@@ -429,6 +445,7 @@ pub struct PriceFeedEntry {
 /// Investor housing stock ownership data.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct InvestorHousingStockOwnership {
+    pub parcl_id: Option<i64>,
     pub date: String,
     /// Count of properties owned by investors.
     #[serde(rename = "count")]
@@ -441,6 +458,7 @@ pub struct InvestorHousingStockOwnership {
 /// Investor purchase-to-sale ratio data.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct InvestorPurchaseToSaleRatio {
+    pub parcl_id: Option<i64>,
     pub date: String,
     /// Number of acquisitions by investors.
     pub acquisitions: Option<i64>,
@@ -453,6 +471,7 @@ pub struct InvestorPurchaseToSaleRatio {
 /// Investor housing event counts.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct InvestorHousingEventCounts {
+    pub parcl_id: Option<i64>,
     pub date: String,
     /// Count of investor property acquisitions.
     pub acquisitions: Option<i64>,
@@ -493,6 +512,7 @@ pub struct RollingPercentages {
 /// Rolling counts for investor new listings.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct InvestorNewListingsRollingCounts {
+    pub parcl_id: Option<i64>,
     pub date: String,
     /// Rolling counts of new listings.
     pub count: Option<RollingCounts>,
@@ -507,6 +527,7 @@ pub struct InvestorNewListingsRollingCounts {
 /// For-sale inventory metrics.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct ForSaleInventory {
+    pub parcl_id: Option<i64>,
     pub date: String,
     /// Total count of properties listed for sale.
     pub for_sale_inventory: Option<i64>,
@@ -515,6 +536,7 @@ pub struct ForSaleInventory {
 /// For-sale inventory price change metrics.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct ForSaleInventoryPriceChanges {
+    pub parcl_id: Option<i64>,
     pub date: String,
     /// Count of listings with any price change.
     pub count_price_change: Option<i64>,
@@ -538,6 +560,7 @@ pub struct ForSaleInventoryPriceChanges {
 /// Rolling counts for new for-sale listings.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct NewListingsRollingCounts {
+    pub parcl_id: Option<i64>,
     pub date: String,
     /// 7-day rolling count.
     #[serde(rename = "rolling_7_day")]
@@ -560,6 +583,7 @@ pub struct NewListingsRollingCounts {
 /// Gross rental yield metrics.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct GrossYield {
+    pub parcl_id: Option<i64>,
     pub date: String,
     /// Annual rental income divided by median sale price.
     pub gross_yield: Option<f64>,
@@ -568,6 +592,7 @@ pub struct GrossYield {
 /// Rental units concentration metrics.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct RentalUnitsConcentration {
+    pub parcl_id: Option<i64>,
     pub date: String,
     /// Percentage of housing stock that are rental units.
     pub rental_units_concentration: Option<f64>,
@@ -576,6 +601,7 @@ pub struct RentalUnitsConcentration {
 /// Rolling counts for new rental listings.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct RentalNewListingsRollingCounts {
+    pub parcl_id: Option<i64>,
     pub date: String,
     /// 7-day rolling count.
     #[serde(rename = "rolling_7_day")]
@@ -618,6 +644,7 @@ pub struct PortfolioSizePctBreakdown {
 /// SF housing stock ownership broken down by portfolio size.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct PortfolioStockOwnership {
+    pub parcl_id: Option<i64>,
     pub date: String,
     /// Owned property counts by portfolio size.
     pub count: Option<PortfolioSizeBreakdown>,
@@ -628,6 +655,7 @@ pub struct PortfolioStockOwnership {
 /// Portfolio holder housing event counts.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct PortfolioHousingEventCounts {
+    pub parcl_id: Option<i64>,
     pub date: String,
     pub acquisitions: Option<i64>,
     pub dispositions: Option<i64>,
@@ -639,6 +667,7 @@ pub struct PortfolioHousingEventCounts {
 /// Rolling counts for portfolio new for-sale listings.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct PortfolioNewListingsRollingCounts {
+    pub parcl_id: Option<i64>,
     pub date: String,
     /// Rolling counts of new for-sale listings.
     pub count: Option<RollingCounts>,
@@ -649,6 +678,7 @@ pub struct PortfolioNewListingsRollingCounts {
 /// Rolling counts for portfolio new rental listings.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct PortfolioRentalListingsRollingCounts {
+    pub parcl_id: Option<i64>,
     pub date: String,
     /// Rolling counts of new rental listings.
     pub count: Option<RollingCounts>,

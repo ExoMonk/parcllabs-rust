@@ -2,8 +2,8 @@
 
 use crate::error::{ParclError, Result};
 use crate::models::{
-    GrossYield, MetricsResponse, PropertyType, RentalNewListingsRollingCounts,
-    RentalUnitsConcentration,
+    BatchMetricsResponse, GrossYield, MetricsResponse, PropertyType,
+    RentalNewListingsRollingCounts, RentalUnitsConcentration,
 };
 use reqwest::Client;
 
@@ -91,6 +91,27 @@ impl RentalMetricsParams {
             format!("?{}", params.join("&"))
         }
     }
+
+    pub(crate) fn to_batch_body(&self, parcl_ids: &[i64]) -> serde_json::Value {
+        let mut body = serde_json::json!({ "parcl_id": parcl_ids });
+        let obj = body.as_object_mut().unwrap();
+        if let Some(l) = self.limit {
+            obj.insert("limit".into(), serde_json::json!(l));
+        }
+        if let Some(o) = self.offset {
+            obj.insert("offset".into(), serde_json::json!(o));
+        }
+        if let Some(ref s) = self.start_date {
+            obj.insert("start_date".into(), serde_json::json!(s));
+        }
+        if let Some(ref e) = self.end_date {
+            obj.insert("end_date".into(), serde_json::json!(e));
+        }
+        if let Some(pt) = self.property_type {
+            obj.insert("property_type".into(), serde_json::json!(pt.as_str()));
+        }
+        body
+    }
 }
 
 impl<'a> RentalMetricsClient<'a> {
@@ -156,6 +177,71 @@ impl<'a> RentalMetricsClient<'a> {
             self.base_url, parcl_id, query
         );
         self.fetch_with_pagination(&url, auto_paginate).await
+    }
+
+    // --- Batch POST methods ---
+
+    /// Batch retrieves gross yield for multiple markets.
+    pub async fn batch_gross_yield(
+        &self,
+        parcl_ids: Vec<i64>,
+        params: Option<RentalMetricsParams>,
+    ) -> Result<BatchMetricsResponse<GrossYield>> {
+        let params = params.unwrap_or_default();
+        let body = params.to_batch_body(&parcl_ids);
+        let url = format!("{}/v1/rental_market_metrics/gross_yield", self.base_url);
+        super::common::post_with_pagination(
+            self.http,
+            self.api_key,
+            &url,
+            &body,
+            params.auto_paginate,
+        )
+        .await
+    }
+
+    /// Batch retrieves rental units concentration for multiple markets.
+    pub async fn batch_rental_units_concentration(
+        &self,
+        parcl_ids: Vec<i64>,
+        params: Option<RentalMetricsParams>,
+    ) -> Result<BatchMetricsResponse<RentalUnitsConcentration>> {
+        let params = params.unwrap_or_default();
+        let body = params.to_batch_body(&parcl_ids);
+        let url = format!(
+            "{}/v1/rental_market_metrics/rental_units_concentration",
+            self.base_url
+        );
+        super::common::post_with_pagination(
+            self.http,
+            self.api_key,
+            &url,
+            &body,
+            params.auto_paginate,
+        )
+        .await
+    }
+
+    /// Batch retrieves new listings for rent rolling counts for multiple markets.
+    pub async fn batch_new_listings_for_rent_rolling_counts(
+        &self,
+        parcl_ids: Vec<i64>,
+        params: Option<RentalMetricsParams>,
+    ) -> Result<BatchMetricsResponse<RentalNewListingsRollingCounts>> {
+        let params = params.unwrap_or_default();
+        let body = params.to_batch_body(&parcl_ids);
+        let url = format!(
+            "{}/v1/rental_market_metrics/new_listings_for_rent_rolling_counts",
+            self.base_url
+        );
+        super::common::post_with_pagination(
+            self.http,
+            self.api_key,
+            &url,
+            &body,
+            params.auto_paginate,
+        )
+        .await
     }
 
     async fn fetch_with_pagination<T: serde::de::DeserializeOwned>(
@@ -256,5 +342,32 @@ mod tests {
         assert!(qs.contains("start_date=2024-01-01"));
         assert!(qs.contains("end_date=2024-12-31"));
         assert!(qs.contains("property_type=CONDO"));
+    }
+
+    #[test]
+    fn rental_params_batch_body_minimal() {
+        let params = RentalMetricsParams::new();
+        let body = params.to_batch_body(&[100, 200]);
+        let obj = body.as_object().unwrap();
+        assert_eq!(obj["parcl_id"], serde_json::json!([100, 200]));
+        assert!(!obj.contains_key("limit"));
+    }
+
+    #[test]
+    fn rental_params_batch_body_all_fields() {
+        let params = RentalMetricsParams::new()
+            .limit(10)
+            .offset(5)
+            .start_date("2024-01-01")
+            .end_date("2024-12-31")
+            .property_type(PropertyType::Condo);
+        let body = params.to_batch_body(&[100]);
+        let obj = body.as_object().unwrap();
+        assert_eq!(obj["parcl_id"], serde_json::json!([100]));
+        assert_eq!(obj["limit"], 10);
+        assert_eq!(obj["offset"], 5);
+        assert_eq!(obj["start_date"], "2024-01-01");
+        assert_eq!(obj["end_date"], "2024-12-31");
+        assert_eq!(obj["property_type"], "CONDO");
     }
 }

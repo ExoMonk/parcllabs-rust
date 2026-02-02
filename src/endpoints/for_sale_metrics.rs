@@ -2,8 +2,8 @@
 
 use crate::error::{ParclError, Result};
 use crate::models::{
-    ForSaleInventory, ForSaleInventoryPriceChanges, MetricsResponse, NewListingsRollingCounts,
-    PropertyType,
+    BatchMetricsResponse, ForSaleInventory, ForSaleInventoryPriceChanges, MetricsResponse,
+    NewListingsRollingCounts, PropertyType,
 };
 use reqwest::Client;
 
@@ -91,6 +91,27 @@ impl ForSaleMetricsParams {
             format!("?{}", params.join("&"))
         }
     }
+
+    pub(crate) fn to_batch_body(&self, parcl_ids: &[i64]) -> serde_json::Value {
+        let mut body = serde_json::json!({ "parcl_id": parcl_ids });
+        let obj = body.as_object_mut().unwrap();
+        if let Some(l) = self.limit {
+            obj.insert("limit".into(), serde_json::json!(l));
+        }
+        if let Some(o) = self.offset {
+            obj.insert("offset".into(), serde_json::json!(o));
+        }
+        if let Some(ref s) = self.start_date {
+            obj.insert("start_date".into(), serde_json::json!(s));
+        }
+        if let Some(ref e) = self.end_date {
+            obj.insert("end_date".into(), serde_json::json!(e));
+        }
+        if let Some(pt) = self.property_type {
+            obj.insert("property_type".into(), serde_json::json!(pt.as_str()));
+        }
+        body
+    }
 }
 
 impl<'a> ForSaleMetricsClient<'a> {
@@ -158,6 +179,65 @@ impl<'a> ForSaleMetricsClient<'a> {
             self.base_url, parcl_id, query
         );
         self.fetch_with_pagination(&url, auto_paginate).await
+    }
+
+    // --- Batch POST methods ---
+
+    /// Batch retrieves for-sale inventory for multiple markets.
+    pub async fn batch_for_sale_inventory(
+        &self,
+        parcl_ids: Vec<i64>,
+        params: Option<ForSaleMetricsParams>,
+    ) -> Result<BatchMetricsResponse<ForSaleInventory>> {
+        let params = params.unwrap_or_default();
+        let body = params.to_batch_body(&parcl_ids);
+        let url = format!("{}/v1/for_sale_market_metrics/for_sale_inventory", self.base_url);
+        super::common::post_with_pagination(
+            self.http,
+            self.api_key,
+            &url,
+            &body,
+            params.auto_paginate,
+        )
+        .await
+    }
+
+    /// Batch retrieves for-sale inventory price changes for multiple markets.
+    pub async fn batch_for_sale_inventory_price_changes(
+        &self,
+        parcl_ids: Vec<i64>,
+        params: Option<ForSaleMetricsParams>,
+    ) -> Result<BatchMetricsResponse<ForSaleInventoryPriceChanges>> {
+        let params = params.unwrap_or_default();
+        let body = params.to_batch_body(&parcl_ids);
+        let url = format!("{}/v1/for_sale_market_metrics/for_sale_inventory_price_changes", self.base_url);
+        super::common::post_with_pagination(
+            self.http,
+            self.api_key,
+            &url,
+            &body,
+            params.auto_paginate,
+        )
+        .await
+    }
+
+    /// Batch retrieves new listings rolling counts for multiple markets.
+    pub async fn batch_new_listings_rolling_counts(
+        &self,
+        parcl_ids: Vec<i64>,
+        params: Option<ForSaleMetricsParams>,
+    ) -> Result<BatchMetricsResponse<NewListingsRollingCounts>> {
+        let params = params.unwrap_or_default();
+        let body = params.to_batch_body(&parcl_ids);
+        let url = format!("{}/v1/for_sale_market_metrics/new_listings_rolling_counts", self.base_url);
+        super::common::post_with_pagination(
+            self.http,
+            self.api_key,
+            &url,
+            &body,
+            params.auto_paginate,
+        )
+        .await
     }
 
     async fn fetch_with_pagination<T: serde::de::DeserializeOwned>(
@@ -272,5 +352,32 @@ mod tests {
         assert!(qs.contains("property_type=TOWNHOUSE"));
         assert!(!qs.contains("offset"));
         assert!(!qs.contains("start_date"));
+    }
+
+    #[test]
+    fn for_sale_params_batch_body_minimal() {
+        let params = ForSaleMetricsParams::new();
+        let body = params.to_batch_body(&[100, 200]);
+        let obj = body.as_object().unwrap();
+        assert_eq!(obj["parcl_id"], serde_json::json!([100, 200]));
+        assert!(!obj.contains_key("limit"));
+    }
+
+    #[test]
+    fn for_sale_params_batch_body_all_fields() {
+        let params = ForSaleMetricsParams::new()
+            .limit(10)
+            .offset(5)
+            .start_date("2024-01-01")
+            .end_date("2024-12-31")
+            .property_type(PropertyType::Condo);
+        let body = params.to_batch_body(&[100]);
+        let obj = body.as_object().unwrap();
+        assert_eq!(obj["parcl_id"], serde_json::json!([100]));
+        assert_eq!(obj["limit"], 10);
+        assert_eq!(obj["offset"], 5);
+        assert_eq!(obj["start_date"], "2024-01-01");
+        assert_eq!(obj["end_date"], "2024-12-31");
+        assert_eq!(obj["property_type"], "CONDO");
     }
 }
