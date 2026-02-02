@@ -51,6 +51,16 @@ pub struct Market {
     pub parcl_exchange_market: Option<i32>,
     /// Whether this market has price feed data (0 or 1).
     pub pricefeed_market: Option<i32>,
+    /// Country code (e.g. "US").
+    pub country: Option<String>,
+    /// Geographic identifier.
+    pub geoid: Option<String>,
+    /// US Census region.
+    pub region: Option<String>,
+    /// Whether this market is in the Case-Shiller 10-city index (0 or 1).
+    pub case_shiller_10_market: Option<i32>,
+    /// Whether this market is in the Case-Shiller 20-city index (0 or 1).
+    pub case_shiller_20_market: Option<i32>,
 }
 
 impl Market {
@@ -213,6 +223,35 @@ impl PropertyType {
 }
 
 impl std::fmt::Display for PropertyType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+/// Portfolio size filter for portfolio metrics.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum PortfolioSize {
+    Portfolio2To9,
+    Portfolio10To99,
+    Portfolio100To999,
+    Portfolio1000Plus,
+    #[default]
+    AllPortfolios,
+}
+
+impl PortfolioSize {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Portfolio2To9 => "PORTFOLIO_2_TO_9",
+            Self::Portfolio10To99 => "PORTFOLIO_10_TO_99",
+            Self::Portfolio100To999 => "PORTFOLIO_100_TO_999",
+            Self::Portfolio1000Plus => "PORTFOLIO_1000_PLUS",
+            Self::AllPortfolios => "ALL_PORTFOLIOS",
+        }
+    }
+}
+
+impl std::fmt::Display for PortfolioSize {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(self.as_str())
     }
@@ -493,6 +532,11 @@ mod tests {
             median_income: Some(75_000),
             parcl_exchange_market: exchange,
             pricefeed_market: pricefeed,
+            country: None,
+            geoid: None,
+            region: None,
+            case_shiller_10_market: None,
+            case_shiller_20_market: None,
         }
     }
 
@@ -961,5 +1005,80 @@ mod tests {
         assert_eq!(counts.rolling_30_day_count, Some(100));
         assert_eq!(counts.rolling_60_day_count, Some(200));
         assert_eq!(counts.rolling_90_day_count, Some(300));
+    }
+
+    #[test]
+    fn portfolio_size_as_str() {
+        assert_eq!(PortfolioSize::Portfolio2To9.as_str(), "PORTFOLIO_2_TO_9");
+        assert_eq!(PortfolioSize::Portfolio10To99.as_str(), "PORTFOLIO_10_TO_99");
+        assert_eq!(
+            PortfolioSize::Portfolio100To999.as_str(),
+            "PORTFOLIO_100_TO_999"
+        );
+        assert_eq!(
+            PortfolioSize::Portfolio1000Plus.as_str(),
+            "PORTFOLIO_1000_PLUS"
+        );
+        assert_eq!(PortfolioSize::AllPortfolios.as_str(), "ALL_PORTFOLIOS");
+    }
+
+    #[test]
+    fn portfolio_size_default() {
+        assert_eq!(PortfolioSize::default(), PortfolioSize::AllPortfolios);
+    }
+
+    #[test]
+    fn portfolio_size_display() {
+        assert_eq!(
+            format!("{}", PortfolioSize::Portfolio2To9),
+            "PORTFOLIO_2_TO_9"
+        );
+        assert_eq!(
+            format!("{}", PortfolioSize::AllPortfolios),
+            "ALL_PORTFOLIOS"
+        );
+    }
+
+    #[test]
+    fn market_deserialize_with_new_fields() {
+        let json = r#"{
+            "parcl_id": 2900078,
+            "name": "Los Angeles",
+            "state_abbreviation": "CA",
+            "state_fips_code": "06",
+            "location_type": "CBSA",
+            "total_population": 13000000,
+            "median_income": 89000,
+            "parcl_exchange_market": 1,
+            "pricefeed_market": 1,
+            "country": "US",
+            "geoid": "31080",
+            "region": "PACIFIC",
+            "case_shiller_10_market": 1,
+            "case_shiller_20_market": 1
+        }"#;
+
+        let market: Market = serde_json::from_str(json).unwrap();
+        assert_eq!(market.country, Some("US".into()));
+        assert_eq!(market.geoid, Some("31080".into()));
+        assert_eq!(market.region, Some("PACIFIC".into()));
+        assert_eq!(market.case_shiller_10_market, Some(1));
+        assert_eq!(market.case_shiller_20_market, Some(1));
+    }
+
+    #[test]
+    fn market_deserialize_without_new_fields() {
+        let json = r#"{
+            "parcl_id": 123,
+            "name": "Test",
+            "location_type": "CITY"
+        }"#;
+
+        let market: Market = serde_json::from_str(json).unwrap();
+        assert!(market.country.is_none());
+        assert!(market.geoid.is_none());
+        assert!(market.region.is_none());
+        assert!(market.case_shiller_10_market.is_none());
+        assert!(market.case_shiller_20_market.is_none());
     }
 }
