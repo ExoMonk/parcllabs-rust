@@ -41,3 +41,7 @@ path = "examples/institutional_ownership.rs"
 [[example]]
 name = "for_sale_market_analysis"
 path = "examples/for_sale_market_analysis.rs"
+
+[[example]]
+name = "batch_metrics"
+path = "examples/batch_metrics.rs"

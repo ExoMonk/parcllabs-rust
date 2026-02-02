@@ -25,10 +25,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     if let Some(item) = ownership.items.first() {
         println!("SF Housing Stock Ownership ({}):", item.date);
-        println!(
-            "{:<20} {:>10} {:>8}",
-            "Portfolio Size", "Count", "Pct"
-        );
+        println!("{:<20} {:>10} {:>8}", "Portfolio Size", "Count", "Pct");
         println!("{}", "-".repeat(40));
 
         if let (Some(c), Some(p)) = (&item.count, &item.pct_sf_housing_stock) {

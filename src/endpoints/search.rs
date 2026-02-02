@@ -2,13 +2,11 @@
 
 use crate::error::{ParclError, Result};
 use crate::models::{LocationType, Market, PaginatedResponse, SortBy, SortOrder, USRegion};
-use reqwest::Client;
+use crate::ParclClient;
 
 /// Client for search API endpoints.
 pub struct SearchClient<'a> {
-    http: &'a Client,
-    base_url: &'a str,
-    api_key: &'a str,
+    client: &'a ParclClient,
 }
 
 /// Query parameters for market search.
@@ -141,12 +139,8 @@ impl SearchParams {
 }
 
 impl<'a> SearchClient<'a> {
-    pub(crate) fn new(http: &'a Client, base_url: &'a str, api_key: &'a str) -> Self {
-        Self {
-            http,
-            base_url,
-            api_key,
-        }
+    pub(crate) fn new(client: &'a ParclClient) -> Self {
+        Self { client }
     }
 
     /// Searches for markets using the provided parameters.
@@ -176,40 +170,58 @@ impl<'a> SearchClient<'a> {
     /// ```
     pub async fn markets(&self, params: SearchParams) -> Result<PaginatedResponse<Market>> {
         let query = params.to_query_string();
-        let url = format!("{}/v1/search/markets{}", self.base_url, query);
+        let url = format!("{}/v1/search/markets{}", self.client.base_url, query);
 
         let mut response = self.fetch_page(&url).await?;
 
         if params.auto_paginate {
             while let Some(ref next_url) = response.links.next {
                 let next_page = self.fetch_page(next_url).await?;
+                self.client.update_credits(&next_page.account);
                 response.items.extend(next_page.items);
                 response.links = next_page.links;
             }
         }
 
+        self.client.update_credits(&response.account);
         Ok(response)
     }
 
     async fn fetch_page(&self, url: &str) -> Result<PaginatedResponse<Market>> {
-        let response = self
-            .http
-            .get(url)
-            .header("Authorization", self.api_key)
-            .send()
-            .await?;
+        for attempt in 0..=self.client.retry_config.max_retries {
+            let response = self
+                .client
+                .http
+                .get(url)
+                .header("Authorization", &self.client.api_key)
+                .send()
+                .await?;
 
-        let status = response.status();
-        if !status.is_success() {
-            let message = response.text().await.unwrap_or_default();
-            return Err(ParclError::ApiError {
-                status: status.as_u16(),
-                message,
-            });
+            let status = response.status();
+            if status.as_u16() == 429 && attempt < self.client.retry_config.max_retries {
+                let backoff = self.client.retry_config.initial_backoff_ms * 2u64.pow(attempt);
+                tokio::time::sleep(std::time::Duration::from_millis(backoff)).await;
+                continue;
+            }
+
+            if !status.is_success() {
+                let message = response.text().await.unwrap_or_default();
+                if status.as_u16() == 429 {
+                    return Err(ParclError::RateLimited {
+                        attempts: attempt + 1,
+                        message,
+                    });
+                }
+                return Err(ParclError::ApiError {
+                    status: status.as_u16(),
+                    message,
+                });
+            }
+
+            let data: PaginatedResponse<Market> = response.json().await?;
+            return Ok(data);
         }
-
-        let data: PaginatedResponse<Market> = response.json().await?;
-        Ok(data)
+        unreachable!()
     }
 }
 
