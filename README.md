@@ -6,23 +6,14 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![MSRV](https://img.shields.io/badge/MSRV-1.83.0-blue.svg)](https://blog.rust-lang.org/2024/11/28/Rust-1.83.0.html)
 
-Rust SDK for the [Parcl Labs API](https://docs.parcllabs.com/) - Real-time U.S. housing market data and analytics covering 70,000+ markets.
+Rust SDK for the [Parcl Labs API](https://docs.parcllabs.com/) — real-time U.S. housing market data covering 70,000+ markets. 53 endpoints across 9 services with automatic pagination, retry logic, and credit tracking.
 
 ## Installation
-
-Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
 parcllabs = "0.1"
 tokio = { version = "1", features = ["full"] }
-```
-
-Or use `cargo add`:
-
-```bash
-cargo add parcllabs
-cargo add tokio --features full
 ```
 
 ## Quick Start
@@ -32,37 +23,25 @@ use parcllabs::{ParclClient, SearchParams, MetricsParams};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Initialize client (reads PARCL_LABS_API_KEY from environment)
-    let client = ParclClient::new()?;
+    let client = ParclClient::new()?; // reads PARCL_LABS_API_KEY env var
 
     // Search for markets
-    let params = SearchParams::new()
-        .query("Los Angeles")
-        .state("CA")
-        .limit(5);
+    let params = SearchParams::new().query("Los Angeles").state("CA").limit(5);
     let markets = client.search().markets(params).await?;
-
     let la = &markets.items[0];
-    println!("Found: {} (parcl_id: {})", la.name, la.parcl_id);
 
     // Get housing metrics
-    let params = MetricsParams::new()
-        .limit(12)
-        .start_date("2024-01-01");
-
-    let events = client
-        .market_metrics()
+    let params = MetricsParams::new().limit(12).start_date("2024-01-01");
+    let events = client.market_metrics()
         .housing_event_counts(la.parcl_id, Some(params))
         .await?;
 
     for event in &events.items {
-        println!(
-            "{}: {} sales, {} new listings",
-            event.date,
-            event.sales.unwrap_or(0),
-            event.new_listings_for_sale.unwrap_or(0)
-        );
+        println!("{}: {} sales", event.date, event.sales.unwrap_or(0));
     }
+
+    // Check credit usage
+    println!("Credits used: {}", client.session_credits_used());
 
     Ok(())
 }
@@ -70,351 +49,219 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ## Authentication
 
-Get your API key at [dashboard.parcllabs.com](https://dashboard.parcllabs.com).
-
 ```bash
-# Set environment variable
-export PARCL_LABS_API_KEY=your_api_key
+export PARCL_LABS_API_KEY=your_api_key  # from dashboard.parcllabs.com
 ```
 
-Or pass it directly:
-
 ```rust
+// From environment
+let client = ParclClient::new()?;
+
+// Explicit key
 let client = ParclClient::with_api_key("your_api_key");
 
-// Custom base URL (for testing)
+// Custom base URL
 let client = ParclClient::with_config("your_api_key", "https://custom.api.com");
 ```
 
----
-
 ## Services
 
-### Search Markets
+All metric services follow the same pattern: GET for a single market by `parcl_id`, batch POST for multiple markets at once.
 
-Find markets by name, state, location type, or region. Returns `parcl_id` identifiers used by all other endpoints.
+### Search
 
 ```rust
-use parcllabs::{SearchParams, LocationType, USRegion, SortBy, SortOrder};
+use parcllabs::{SearchParams, LocationType, SortBy, SortOrder};
 
 let params = SearchParams::new()
-    .query("San Francisco")         // Search by name
-    .state("CA")                    // Filter by state
+    .query("San Francisco")
+    .state("CA")
     .location_type(LocationType::City)
-    .region(USRegion::Pacific)
     .sort_by(SortBy::TotalPopulation)
     .sort_order(SortOrder::Desc)
     .limit(10);
 
 let markets = client.search().markets(params).await?;
-
-for market in &markets.items {
-    println!("{} ({}): pop {}",
-        market.name,
-        market.location_type,
-        market.total_population.unwrap_or(0)
-    );
-
-    // Check if market has price feed data
-    if market.has_price_feed() {
-        println!("  -> Price feed available");
-    }
-}
 ```
 
-**Available Filters:**
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `query` | `String` | Search text (city name, ZIP, etc.) |
-| `state` | `String` | State abbreviation (CA, NY, TX...) |
-| `location_type` | `LocationType` | City, County, Zip5, Cbsa, Town, Village, Cdp, All |
-| `region` | `USRegion` | Pacific, Mountain, NewEngland, MiddleAtlantic, etc. |
-| `sort_by` | `SortBy` | TotalPopulation, MedianIncome, PricefeedMarket, etc. |
-| `sort_order` | `SortOrder` | Asc, Desc |
-
----
-
 ### Market Metrics
-
-Housing market analytics including sales counts, prices, inventory, and property attributes.
 
 ```rust
 use parcllabs::{MetricsParams, PropertyType};
 
-let parcl_id = 2900078; // Los Angeles CBSA
-
-// Housing event counts (sales, new listings)
-let events = client.market_metrics()
-    .housing_event_counts(parcl_id, None)
-    .await?;
-
-// Housing stock by property type
-let stock = client.market_metrics()
-    .housing_stock(parcl_id, None)
-    .await?;
-
-// Prices filtered by property type and date range
 let params = MetricsParams::new()
     .property_type(PropertyType::SingleFamily)
-    .start_date("2024-01-01")
-    .end_date("2024-12-31");
+    .start_date("2024-01-01");
 
-let prices = client.market_metrics()
-    .housing_event_prices(parcl_id, Some(params))
-    .await?;
-
-// All-cash transaction metrics
-let all_cash = client.market_metrics()
-    .all_cash(parcl_id, None)
-    .await?;
-
-for item in &all_cash.items {
-    println!("{}: {:.1}% all-cash sales",
-        item.date,
-        item.pct_sales.unwrap_or(0.0)
-    );
-}
-
-// Property attributes (beds, baths, sqft, year built)
-let attrs = client.market_metrics()
-    .housing_event_property_attributes(parcl_id, None)
-    .await?;
+let events = client.market_metrics().housing_event_counts(parcl_id, Some(params)).await?;
+let prices = client.market_metrics().housing_event_prices(parcl_id, None).await?;
+let stock  = client.market_metrics().housing_stock(parcl_id, None).await?;
+let cash   = client.market_metrics().all_cash(parcl_id, None).await?;
+let attrs  = client.market_metrics().housing_event_property_attributes(parcl_id, None).await?;
 ```
-
-**Available Endpoints:**
-| Method | Description |
-|--------|-------------|
-| `housing_event_counts()` | Monthly sales and listing counts |
-| `housing_event_prices()` | Median prices with percentiles |
-| `housing_stock()` | Property counts by type |
-| `all_cash()` | All-cash transaction rates |
-| `housing_event_property_attributes()` | Median beds, baths, sqft, year built |
-
-**MetricsParams Options:**
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `start_date` | `String` | Filter from date (YYYY-MM-DD) |
-| `end_date` | `String` | Filter to date (YYYY-MM-DD) |
-| `property_type` | `PropertyType` | SingleFamily, Condo, Townhouse, Other, AllProperties |
-| `limit` | `u32` | Results per page |
-| `offset` | `u32` | Pagination offset |
-| `auto_paginate` | `bool` | Fetch all pages automatically |
-
----
 
 ### Investor Metrics
 
-Track institutional investor activity and ownership patterns.
-
 ```rust
-// Investor housing stock ownership
-let ownership = client.investor_metrics()
-    .housing_stock_ownership(parcl_id, None)
-    .await?;
-
-// Investor purchase-to-sale ratio
-let ratio = client.investor_metrics()
-    .purchase_to_sale_ratio(parcl_id, None)
-    .await?;
-
-// Investor housing event counts
-let events = client.investor_metrics()
-    .housing_event_counts(parcl_id, None)
-    .await?;
-
-// Investor housing event prices
-let prices = client.investor_metrics()
-    .housing_event_prices(parcl_id, None)
-    .await?;
-
-// New listings by investors (supports property_type filter)
-let params = MetricsParams::new()
-    .property_type(PropertyType::SingleFamily);
-let listings = client.investor_metrics()
-    .new_listings_for_sale_rolling_counts(parcl_id, Some(params))
-    .await?;
+let ownership = client.investor_metrics().housing_stock_ownership(parcl_id, None).await?;
+let ratio     = client.investor_metrics().purchase_to_sale_ratio(parcl_id, None).await?;
+let counts    = client.investor_metrics().housing_event_counts(parcl_id, None).await?;
+let prices    = client.investor_metrics().housing_event_prices(parcl_id, None).await?;
+let listings  = client.investor_metrics().new_listings_for_sale_rolling_counts(parcl_id, None).await?;
 ```
 
-**Available Endpoints:**
-| Method | Description |
-|--------|-------------|
-| `housing_stock_ownership()` | Investor ownership rates |
-| `purchase_to_sale_ratio()` | Buy vs sell activity |
-| `housing_event_counts()` | Investor transaction counts |
-| `housing_event_prices()` | Investor transaction prices |
-| `new_listings_for_sale_rolling_counts()` | Rolling listing counts |
-
----
-
-### For-Sale Market Metrics
-
-Track current inventory and listing activity in the for-sale market.
+### For-Sale Metrics
 
 ```rust
-use parcllabs::{ForSaleMetricsParams, PropertyType};
-
-let parcl_id = 2900078; // Los Angeles CBSA
-
-// Current for-sale inventory count
-let inventory = client.for_sale_metrics()
-    .for_sale_inventory(parcl_id, None)
-    .await?;
-
-for item in &inventory.items {
-    println!("{}: {} properties for sale",
-        item.date,
-        item.for_sale_inventory.unwrap_or(0)
-    );
-}
-
-// Price change metrics (drops, days between changes)
-let params = ForSaleMetricsParams::new()
-    .property_type(PropertyType::SingleFamily)
-    .start_date("2024-01-01");
-
-let price_changes = client.for_sale_metrics()
-    .for_sale_inventory_price_changes(parcl_id, Some(params))
-    .await?;
-
-for item in &price_changes.items {
-    println!("{}: {:.1}% had price drops",
-        item.date,
-        item.pct_price_drop.unwrap_or(0.0)
-    );
-}
-
-// Rolling counts of new listings (7, 30, 60, 90 day)
-let rolling = client.for_sale_metrics()
-    .new_listings_rolling_counts(parcl_id, None)
-    .await?;
-
-for item in &rolling.items {
-    println!("{}: {} new listings (30-day)",
-        item.date,
-        item.rolling_30_day_count.unwrap_or(0)
-    );
-}
+let inventory     = client.for_sale_metrics().for_sale_inventory(parcl_id, None).await?;
+let price_changes = client.for_sale_metrics().for_sale_inventory_price_changes(parcl_id, None).await?;
+let new_listings  = client.for_sale_metrics().new_listings_rolling_counts(parcl_id, None).await?;
 ```
 
-**Available Endpoints:**
-| Method | Description |
-|--------|-------------|
-| `for_sale_inventory()` | Current inventory count |
-| `for_sale_inventory_price_changes()` | Price change metrics |
-| `new_listings_rolling_counts()` | Rolling counts (7/30/60/90 day) |
-
-**ForSaleMetricsParams Options:**
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `start_date` | `String` | Filter from date (YYYY-MM-DD) |
-| `end_date` | `String` | Filter to date (YYYY-MM-DD) |
-| `property_type` | `PropertyType` | SingleFamily, Condo, Townhouse, Other, AllProperties |
-| `limit` | `u32` | Results per page |
-| `offset` | `u32` | Pagination offset |
-| `auto_paginate` | `bool` | Fetch all pages automatically |
-
----
-
-### Rental Market Metrics
-
-Track rental market activity, yields, and rental concentration.
+### Rental Metrics
 
 ```rust
-use parcllabs::RentalMetricsParams;
-
-let parcl_id = 2900078; // Los Angeles CBSA
-
-// Gross rental yield (annual rent / sale price)
-let yields = client.rental_metrics()
-    .gross_yield(parcl_id, None)
-    .await?;
-
-for item in &yields.items {
-    println!("{}: {:.2}% yield",
-        item.date,
-        item.gross_yield.unwrap_or(0.0)
-    );
-}
-
-// Rental units concentration (% of housing that's rental)
-let concentration = client.rental_metrics()
-    .rental_units_concentration(parcl_id, None)
-    .await?;
-
-// Rolling counts of new rental listings
-let params = RentalMetricsParams::new()
-    .start_date("2024-01-01");
-
-let rolling = client.rental_metrics()
-    .new_listings_for_rent_rolling_counts(parcl_id, Some(params))
-    .await?;
-
-for item in &rolling.items {
-    println!("{}: {} new rentals (30-day)",
-        item.date,
-        item.rolling_30_day_count.unwrap_or(0)
-    );
-}
+let yields        = client.rental_metrics().gross_yield(parcl_id, None).await?;
+let concentration = client.rental_metrics().rental_units_concentration(parcl_id, None).await?;
+let new_rentals   = client.rental_metrics().new_listings_for_rent_rolling_counts(parcl_id, None).await?;
 ```
-
-**Available Endpoints:**
-
-| Method                                   | Description                      |
-|------------------------------------------|----------------------------------|
-| `gross_yield()`                          | Annual rent / sale price ratio   |
-| `rental_units_concentration()`           | Percentage of housing as rentals |
-| `new_listings_for_rent_rolling_counts()` | Rolling counts (7/30/60/90 day)  |
-
----
 
 ### Price Feed
 
-Historical price indices for tradeable markets.
+```rust
+let sale_feed   = client.price_feed().history(parcl_id, None).await?;
+let rental_feed = client.price_feed().rental_history(parcl_id, None).await?;
+```
+
+### New Construction Metrics
 
 ```rust
-// Sale price index history
-let feed = client.price_feed()
-    .history(parcl_id, Some(MetricsParams::new().limit(30)))
+use parcllabs::NewConstructionMetricsParams;
+
+let counts = client.new_construction_metrics().housing_event_counts(parcl_id, None).await?;
+let prices = client.new_construction_metrics().housing_event_prices(parcl_id, None).await?;
+```
+
+### Portfolio Metrics
+
+Track activity by portfolio size (2-9 units, 10-99, 100-999, 1000+).
+
+```rust
+use parcllabs::{PortfolioMetricsParams, PortfolioSize};
+
+let params = PortfolioMetricsParams::new()
+    .portfolio_size(PortfolioSize::Portfolio1000Plus);
+
+let ownership = client.portfolio_metrics().sf_housing_stock_ownership(parcl_id, Some(params)).await?;
+let events    = client.portfolio_metrics().sf_housing_event_counts(parcl_id, None).await?;
+let sales     = client.portfolio_metrics().sf_new_listings_for_sale_rolling_counts(parcl_id, None).await?;
+let rentals   = client.portfolio_metrics().sf_new_listings_for_rent_rolling_counts(parcl_id, None).await?;
+```
+
+### Property API
+
+Search individual properties with granular filters.
+
+```rust
+use parcllabs::{PropertySearchParams, EventHistoryParams};
+
+// Search properties (GET v1)
+let params = PropertySearchParams::new(parcl_id)
+    .property_type(PropertyType::SingleFamily)
+    .limit(50);
+let props = client.property().search(params).await?;
+
+// Search by address (POST v1)
+let addresses = vec!["123 Main St, Los Angeles, CA 90001".to_string()];
+let results = client.property().search_by_address(parcl_id, addresses).await?;
+
+// Event history (POST v1)
+let params = EventHistoryParams::new(parcl_id)
+    .parcl_property_ids(vec![12345, 67890]);
+let history = client.property().event_history(params).await?;
+```
+
+## Batch Queries
+
+Every metric endpoint has a `batch_*` variant that accepts multiple `parcl_id`s in a single request. Each response item includes `parcl_id` for identification.
+
+```rust
+let ids = vec![2900187, 2900078]; // LA and NYC
+let params = MetricsParams::new().limit(5);
+
+let resp = client.market_metrics()
+    .batch_housing_event_counts(ids, Some(params))
     .await?;
 
-for entry in &feed.items {
-    println!("{}: ${:.2}", entry.date, entry.price);
-}
-
-// Rental price feed
-let rental = client.price_feed()
-    .rental_history(parcl_id, None)
-    .await?;
-
-for entry in &rental.items {
-    println!("{}: ${:.2}/mo", entry.date, entry.price);
+for item in &resp.items {
+    println!("parcl_id: {:?}, date: {}, sales: {:?}",
+        item.parcl_id, item.date, item.sales);
 }
 ```
 
-**Available Endpoints:**
+All services support batch: `batch_housing_stock()`, `batch_all_cash()`, `batch_for_sale_inventory()`, `batch_gross_yield()`, `batch_history()`, etc.
 
-| Method             | Description        |
-|--------------------|--------------------|
-| `history()`        | Sale price index   |
-| `rental_history()` | Rental price index |
+## Retry & Rate Limiting
 
----
-
-### Auto-Pagination
-
-Automatically fetch all pages of results:
+Automatic retry with exponential backoff on HTTP 429 responses. Configurable via `RetryConfig`.
 
 ```rust
-// Search - fetch all matching markets
-let params = SearchParams::new()
-    .query("San")
-    .state("CA")
-    .auto_paginate(true);
+use parcllabs::RetryConfig;
 
-let all_markets = client.search().markets(params).await?;
-println!("Fetched {} markets", all_markets.items.len());
+// Default: 3 retries, 1s initial backoff (doubles each attempt)
+let client = ParclClient::new()?;
 
-// Metrics - fetch complete history
+// Custom retry config
+let client = ParclClient::with_api_key("key")
+    .with_retry_config(RetryConfig {
+        max_retries: 5,
+        initial_backoff_ms: 500,
+    });
+
+// Disable retries
+let client = ParclClient::with_api_key("key")
+    .with_retry_config(RetryConfig {
+        max_retries: 0,
+        initial_backoff_ms: 0,
+    });
+```
+
+If all retries are exhausted, returns `ParclError::RateLimited`.
+
+## Credit Tracking
+
+API credit usage is tracked automatically from response bodies.
+
+```rust
+let client = ParclClient::new()?;
+
+// Make some requests...
+let _ = client.market_metrics().housing_event_counts(parcl_id, None).await?;
+let _ = client.market_metrics().housing_stock(parcl_id, None).await?;
+
+// Session-level credit tracking
+println!("Credits used this session: {}", client.session_credits_used());
+println!("Remaining credits: {}", client.remaining_credits());
+
+// Or get both at once
+let usage = client.account_info();
+println!("{:?}", usage);
+```
+
+Per-response credit info is also available on every response:
+
+```rust
+let resp = client.market_metrics().housing_event_counts(parcl_id, None).await?;
+if let Some(account) = &resp.account {
+    println!("This request used {} credits", account.est_credits_used.unwrap_or(0));
+}
+```
+
+## Auto-Pagination
+
+All services support transparent pagination:
+
+```rust
 let params = MetricsParams::new()
     .start_date("2020-01-01")
     .auto_paginate(true);
@@ -425,114 +272,7 @@ let history = client.market_metrics()
 println!("Fetched {} months of data", history.items.len());
 ```
 
----
-
-## Examples
-
-```bash
-# Set up environment
-export PARCL_LABS_API_KEY=your_api_key
-
-# Run examples
-cargo run --example search_markets           # Find markets by name/location
-cargo run --example market_metrics           # Housing prices, sales, inventory
-cargo run --example investor_activity        # Track investor buy/sell trends
-cargo run --example institutional_ownership  # Analyze ownership rates
-cargo run --example for_sale_market_analysis # Inventory & price drop analysis
-```
-
-### Example: Investor Activity Analysis
-
-Track where institutional investors are buying or selling:
-
-```rust
-use parcllabs::{ParclClient, InvestorMetricsParams};
-
-let client = ParclClient::new()?;
-
-// Get purchase-to-sale ratio (>1 = net buyer, <1 = net seller)
-let ratios = client.investor_metrics()
-    .purchase_to_sale_ratio(parcl_id, None)
-    .await?;
-
-for item in &ratios.items {
-    let ratio = item.purchase_to_sale_ratio.unwrap_or(0.0);
-    let status = if ratio > 1.0 { "Net Buyer" } else { "Net Seller" };
-    println!("{}: {:.2} ({})", item.date, ratio, status);
-}
-
-// Get rolling listing counts
-let listings = client.investor_metrics()
-    .new_listings_for_sale_rolling_counts(parcl_id, None)
-    .await?;
-```
-
-### Example: Institutional Ownership
-
-Compare investor ownership across markets:
-
-```rust
-// Get ownership percentage
-let ownership = client.investor_metrics()
-    .housing_stock_ownership(parcl_id, None)
-    .await?;
-
-if let Some(latest) = ownership.items.first() {
-    println!("Investor owned: {:.1}% ({} units)",
-        latest.investor_owned_pct.unwrap_or(0.0),
-        latest.investor_owned_count.unwrap_or(0)
-    );
-}
-
-// Track investor transactions
-let events = client.investor_metrics()
-    .housing_event_counts(parcl_id, None)
-    .await?;
-
-if let Some(ev) = events.items.first() {
-    let net = ev.acquisitions.unwrap_or(0) - ev.dispositions.unwrap_or(0);
-    println!("Net activity: {} properties", net);
-}
-```
-
----
-
-## API Coverage
-
-### Implemented
-
-| Service | Endpoint | Method |
-|---------|----------|--------|
-| **Search** | `/v1/search/markets` | `search().markets()` |
-| **Market Metrics** | `housing_event_counts` | `market_metrics().housing_event_counts()` |
-| **Market Metrics** | `housing_event_prices` | `market_metrics().housing_event_prices()` |
-| **Market Metrics** | `housing_stock` | `market_metrics().housing_stock()` |
-| **Market Metrics** | `all_cash` | `market_metrics().all_cash()` |
-| **Market Metrics** | `housing_event_property_attributes` | `market_metrics().housing_event_property_attributes()` |
-| **Investor Metrics** | `housing_stock_ownership` | `investor_metrics().housing_stock_ownership()` |
-| **Investor Metrics** | `purchase_to_sale_ratio` | `investor_metrics().purchase_to_sale_ratio()` |
-| **Investor Metrics** | `housing_event_counts` | `investor_metrics().housing_event_counts()` |
-| **Investor Metrics** | `housing_event_prices` | `investor_metrics().housing_event_prices()` |
-| **Investor Metrics** | `new_listings_for_sale_rolling_counts` | `investor_metrics().new_listings_for_sale_rolling_counts()` |
-| **For-Sale Metrics** | `for_sale_inventory` | `for_sale_metrics().for_sale_inventory()` |
-| **For-Sale Metrics** | `for_sale_inventory_price_changes` | `for_sale_metrics().for_sale_inventory_price_changes()` |
-| **For-Sale Metrics** | `new_listings_rolling_counts` | `for_sale_metrics().new_listings_rolling_counts()` |
-| **Rental Metrics** | `gross_yield` | `rental_metrics().gross_yield()` |
-| **Rental Metrics** | `rental_units_concentration` | `rental_metrics().rental_units_concentration()` |
-| **Rental Metrics** | `new_listings_for_rent_rolling_counts` | `rental_metrics().new_listings_for_rent_rolling_counts()` |
-| **Price Feed** | `history` | `price_feed().history()` |
-| **Price Feed** | `rental_history` | `price_feed().rental_history()` |
-
-### Planned
-
-| Service              | Endpoints                                                   | Priority |
-|----------------------|-------------------------------------------------------------|----------|
-| **New Construction** | housing_event_counts, housing_event_prices                  | Medium   |
-| **Portfolio Metrics**| sf_housing_stock_ownership, sf_event_counts, rolling_counts | Medium   |
-| **Property API**     | property_search, event_history, address_search              | Low      |
-| **Batch Endpoints**  | POST endpoints for bulk queries                             | Low      |
-
----
+Works for both GET and batch POST endpoints.
 
 ## Error Handling
 
@@ -542,6 +282,9 @@ use parcllabs::{ParclClient, ParclError};
 match client.search().markets(params).await {
     Ok(markets) => println!("Found {} markets", markets.items.len()),
     Err(ParclError::MissingApiKey) => eprintln!("Set PARCL_LABS_API_KEY"),
+    Err(ParclError::RateLimited { attempts, message }) => {
+        eprintln!("Rate limited after {} retries: {}", attempts, message)
+    }
     Err(ParclError::ApiError { status, message }) => {
         eprintln!("API error {}: {}", status, message)
     }
@@ -549,7 +292,34 @@ match client.search().markets(params).await {
 }
 ```
 
----
+## Examples
+
+```bash
+export PARCL_LABS_API_KEY=your_api_key
+
+cargo run --example search_markets           # Find markets by name/location
+cargo run --example market_metrics           # Housing prices, sales, inventory
+cargo run --example investor_activity        # Investor buy/sell trends
+cargo run --example institutional_ownership  # Ownership rate analysis
+cargo run --example for_sale_market_analysis # Inventory & price drops
+cargo run --example batch_metrics            # Multi-market batch queries
+```
+
+## API Coverage
+
+53 endpoints across 9 services — full parity with the Python SDK.
+
+| Service | GET Endpoints | Batch POST |
+|---------|--------------|------------|
+| Search | `markets` | — |
+| Market Metrics | `housing_event_counts`, `housing_event_prices`, `housing_stock`, `all_cash`, `housing_event_property_attributes` | All 5 |
+| Investor Metrics | `housing_stock_ownership`, `purchase_to_sale_ratio`, `housing_event_counts`, `housing_event_prices`, `new_listings_for_sale_rolling_counts` | All 5 |
+| For-Sale Metrics | `for_sale_inventory`, `for_sale_inventory_price_changes`, `new_listings_rolling_counts` | All 3 |
+| Rental Metrics | `gross_yield`, `rental_units_concentration`, `new_listings_for_rent_rolling_counts` | All 3 |
+| Price Feed | `history`, `rental_history` | Both |
+| New Construction | `housing_event_counts`, `housing_event_prices` | Both |
+| Portfolio Metrics | `sf_housing_stock_ownership`, `sf_housing_event_counts`, `sf_new_listings_for_sale_rolling_counts`, `sf_new_listings_for_rent_rolling_counts` | All 4 |
+| Property | `search` (GET), `search_by_address` (POST), `event_history` (POST), `search_v2` (POST) | — |
 
 ## License
 
