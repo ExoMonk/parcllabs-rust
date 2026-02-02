@@ -46,6 +46,7 @@ pub use endpoints::rental_metrics::RentalMetricsParams;
 pub use endpoints::search::SearchParams;
 pub use error::{ParclError, Result};
 pub use models::*;
+// RetryConfig is defined in this module (not models), so no re-export needed.
 
 use endpoints::{
     ForSaleMetricsClient, InvestorMetricsClient, MarketMetricsClient,
@@ -54,16 +55,55 @@ use endpoints::{
 };
 use reqwest::Client;
 use std::env;
+use std::sync::atomic::{AtomicI64, Ordering};
 
 const DEFAULT_BASE_URL: &str = "https://api.parcllabs.com";
 const ENV_API_KEY: &str = "PARCL_LABS_API_KEY";
 
+/// Configuration for automatic retry on rate-limited (429) responses.
+#[derive(Debug, Clone)]
+pub struct RetryConfig {
+    /// Maximum number of retry attempts before giving up.
+    pub max_retries: u32,
+    /// Initial backoff duration in milliseconds (doubles each attempt).
+    pub initial_backoff_ms: u64,
+}
+
+impl Default for RetryConfig {
+    fn default() -> Self {
+        Self {
+            max_retries: 3,
+            initial_backoff_ms: 1000,
+        }
+    }
+}
+
 /// Main client for interacting with the Parcl Labs API.
-#[derive(Debug)]
 pub struct ParclClient {
-    http: Client,
-    base_url: String,
-    api_key: String,
+    pub(crate) http: Client,
+    pub(crate) base_url: String,
+    pub(crate) api_key: String,
+    pub(crate) retry_config: RetryConfig,
+    session_credits_used: AtomicI64,
+    remaining_credits: AtomicI64,
+}
+
+impl std::fmt::Debug for ParclClient {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ParclClient")
+            .field("base_url", &self.base_url)
+            .field("api_key", &"***")
+            .field("retry_config", &self.retry_config)
+            .field(
+                "session_credits_used",
+                &self.session_credits_used.load(Ordering::Relaxed),
+            )
+            .field(
+                "remaining_credits",
+                &self.remaining_credits.load(Ordering::Relaxed),
+            )
+            .finish()
+    }
 }
 
 impl ParclClient {
@@ -74,6 +114,9 @@ impl ParclClient {
             http: Client::new(),
             base_url: DEFAULT_BASE_URL.to_string(),
             api_key,
+            retry_config: RetryConfig::default(),
+            session_credits_used: AtomicI64::new(0),
+            remaining_credits: AtomicI64::new(0),
         })
     }
 
@@ -83,6 +126,9 @@ impl ParclClient {
             http: Client::new(),
             base_url: DEFAULT_BASE_URL.to_string(),
             api_key: api_key.into(),
+            retry_config: RetryConfig::default(),
+            session_credits_used: AtomicI64::new(0),
+            remaining_credits: AtomicI64::new(0),
         }
     }
 
@@ -92,52 +138,91 @@ impl ParclClient {
             http: Client::new(),
             base_url: base_url.into(),
             api_key: api_key.into(),
+            retry_config: RetryConfig::default(),
+            session_credits_used: AtomicI64::new(0),
+            remaining_credits: AtomicI64::new(0),
         }
+    }
+
+    /// Sets the retry configuration for rate-limited requests.
+    pub fn with_retry_config(mut self, config: RetryConfig) -> Self {
+        self.retry_config = config;
+        self
+    }
+
+    /// Updates session credit tracking from an API response's account info.
+    pub(crate) fn update_credits(&self, account: &Option<AccountInfo>) {
+        if let Some(info) = account {
+            if let Some(used) = info.est_credits_used {
+                self.session_credits_used.fetch_add(used, Ordering::Relaxed);
+            }
+            if let Some(remaining) = info.est_remaining_credits {
+                self.remaining_credits.store(remaining, Ordering::Relaxed);
+            }
+        }
+    }
+
+    /// Returns the accumulated session credit usage.
+    pub fn account_info(&self) -> AccountUsage {
+        AccountUsage {
+            est_session_credits_used: self.session_credits_used.load(Ordering::Relaxed),
+            est_remaining_credits: self.remaining_credits.load(Ordering::Relaxed),
+        }
+    }
+
+    /// Returns total credits used in this session.
+    pub fn session_credits_used(&self) -> i64 {
+        self.session_credits_used.load(Ordering::Relaxed)
+    }
+
+    /// Returns the last known remaining credits.
+    pub fn remaining_credits(&self) -> i64 {
+        self.remaining_credits.load(Ordering::Relaxed)
     }
 
     /// Returns a client for search endpoints.
     pub fn search(&self) -> SearchClient<'_> {
-        SearchClient::new(&self.http, &self.base_url, &self.api_key)
+        SearchClient::new(self)
     }
 
     /// Returns a client for market metrics endpoints.
     pub fn market_metrics(&self) -> MarketMetricsClient<'_> {
-        MarketMetricsClient::new(&self.http, &self.base_url, &self.api_key)
+        MarketMetricsClient::new(self)
     }
 
     /// Returns a client for investor metrics endpoints.
     pub fn investor_metrics(&self) -> InvestorMetricsClient<'_> {
-        InvestorMetricsClient::new(&self.http, &self.base_url, &self.api_key)
+        InvestorMetricsClient::new(self)
     }
 
     /// Returns a client for for-sale market metrics endpoints.
     pub fn for_sale_metrics(&self) -> ForSaleMetricsClient<'_> {
-        ForSaleMetricsClient::new(&self.http, &self.base_url, &self.api_key)
+        ForSaleMetricsClient::new(self)
     }
 
     /// Returns a client for rental market metrics endpoints.
     pub fn rental_metrics(&self) -> RentalMetricsClient<'_> {
-        RentalMetricsClient::new(&self.http, &self.base_url, &self.api_key)
+        RentalMetricsClient::new(self)
     }
 
     /// Returns a client for price feed endpoints.
     pub fn price_feed(&self) -> PriceFeedClient<'_> {
-        PriceFeedClient::new(&self.http, &self.base_url, &self.api_key)
+        PriceFeedClient::new(self)
     }
 
     /// Returns a client for new construction metrics endpoints.
     pub fn new_construction_metrics(&self) -> NewConstructionMetricsClient<'_> {
-        NewConstructionMetricsClient::new(&self.http, &self.base_url, &self.api_key)
+        NewConstructionMetricsClient::new(self)
     }
 
     /// Returns a client for portfolio metrics endpoints.
     pub fn portfolio_metrics(&self) -> PortfolioMetricsClient<'_> {
-        PortfolioMetricsClient::new(&self.http, &self.base_url, &self.api_key)
+        PortfolioMetricsClient::new(self)
     }
 
     /// Returns a client for property API endpoints.
     pub fn property(&self) -> PropertyClient<'_> {
-        PropertyClient::new(&self.http, &self.base_url, &self.api_key)
+        PropertyClient::new(self)
     }
 }
 
@@ -191,6 +276,73 @@ mod tests {
         } else {
             env::remove_var(ENV_API_KEY);
         }
+    }
+
+    #[test]
+    fn client_with_retry_config() {
+        let config = RetryConfig {
+            max_retries: 5,
+            initial_backoff_ms: 2000,
+        };
+        let client = ParclClient::with_api_key("test").with_retry_config(config);
+        assert_eq!(client.retry_config.max_retries, 5);
+        assert_eq!(client.retry_config.initial_backoff_ms, 2000);
+    }
+
+    #[test]
+    fn retry_config_default() {
+        let config = RetryConfig::default();
+        assert_eq!(config.max_retries, 3);
+        assert_eq!(config.initial_backoff_ms, 1000);
+    }
+
+    #[test]
+    fn update_credits_accumulates() {
+        let client = ParclClient::with_api_key("test");
+        let info1 = Some(AccountInfo {
+            est_credits_used: Some(10),
+            est_remaining_credits: Some(990),
+        });
+        client.update_credits(&info1);
+        assert_eq!(client.session_credits_used(), 10);
+        assert_eq!(client.remaining_credits(), 990);
+
+        let info2 = Some(AccountInfo {
+            est_credits_used: Some(5),
+            est_remaining_credits: Some(985),
+        });
+        client.update_credits(&info2);
+        assert_eq!(client.session_credits_used(), 15);
+        assert_eq!(client.remaining_credits(), 985);
+    }
+
+    #[test]
+    fn update_credits_none_is_noop() {
+        let client = ParclClient::with_api_key("test");
+        client.update_credits(&None);
+        assert_eq!(client.session_credits_used(), 0);
+        assert_eq!(client.remaining_credits(), 0);
+    }
+
+    #[test]
+    fn account_info_returns_session_state() {
+        let client = ParclClient::with_api_key("test");
+        let info = Some(AccountInfo {
+            est_credits_used: Some(42),
+            est_remaining_credits: Some(958),
+        });
+        client.update_credits(&info);
+        let usage = client.account_info();
+        assert_eq!(usage.est_session_credits_used, 42);
+        assert_eq!(usage.est_remaining_credits, 958);
+    }
+
+    #[test]
+    fn client_debug_hides_api_key() {
+        let client = ParclClient::with_api_key("super-secret-key");
+        let debug = format!("{:?}", client);
+        assert!(!debug.contains("super-secret-key"));
+        assert!(debug.contains("***"));
     }
 
     #[test]

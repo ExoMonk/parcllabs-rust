@@ -17,6 +17,9 @@ pub enum ParclError {
 
     #[error("Invalid parameter: {0}")]
     InvalidParameter(String),
+
+    #[error("Rate limited after {attempts} attempts: {message}")]
+    RateLimited { attempts: u32, message: String },
 }
 
 pub type Result<T> = std::result::Result<T, ParclError>;
@@ -45,6 +48,18 @@ mod tests {
     fn invalid_parameter_display() {
         let err = ParclError::InvalidParameter("limit must be positive".into());
         assert_eq!(err.to_string(), "Invalid parameter: limit must be positive");
+    }
+
+    #[test]
+    fn rate_limited_display() {
+        let err = ParclError::RateLimited {
+            attempts: 3,
+            message: "Too many requests".into(),
+        };
+        assert_eq!(
+            err.to_string(),
+            "Rate limited after 3 attempts: Too many requests"
+        );
     }
 
     #[test]

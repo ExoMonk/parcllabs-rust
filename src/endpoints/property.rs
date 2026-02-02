@@ -5,15 +5,13 @@ use crate::models::{
     AddressSearchRequest, EntityOwnerName, EventType, PropertyEventHistoryResponse, PropertyType,
     PropertySearchResponse, PropertyV2SearchRequest, PropertyV2SearchResponse,
 };
-use reqwest::Client;
+use crate::ParclClient;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 
 /// Client for property API endpoints.
 pub struct PropertyClient<'a> {
-    http: &'a Client,
-    base_url: &'a str,
-    api_key: &'a str,
+    client: &'a ParclClient,
 }
 
 /// Query parameters for the `GET /v1/property/search` endpoint.
@@ -341,12 +339,8 @@ impl EventHistoryParams {
 }
 
 impl<'a> PropertyClient<'a> {
-    pub(crate) fn new(http: &'a Client, base_url: &'a str, api_key: &'a str) -> Self {
-        Self {
-            http,
-            base_url,
-            api_key,
-        }
+    pub(crate) fn new(client: &'a ParclClient) -> Self {
+        Self { client }
     }
 
     /// Search properties in a market by filters.
@@ -357,8 +351,10 @@ impl<'a> PropertyClient<'a> {
         params: PropertySearchParams,
     ) -> Result<PropertySearchResponse> {
         let query = params.to_query_string();
-        let url = format!("{}/v1/property/search{}", self.base_url, query);
-        self.fetch_get(&url).await
+        let url = format!("{}/v1/property/search{}", self.client.base_url, query);
+        let resp: PropertySearchResponse = self.fetch_get(&url).await?;
+        self.client.update_credits(&resp.account);
+        Ok(resp)
     }
 
     /// Look up property IDs by street address.
@@ -368,8 +364,10 @@ impl<'a> PropertyClient<'a> {
         &self,
         addresses: Vec<AddressSearchRequest>,
     ) -> Result<PropertySearchResponse> {
-        let url = format!("{}/v1/property/search_address", self.base_url);
-        self.fetch_post(&url, &addresses).await
+        let url = format!("{}/v1/property/search_address", self.client.base_url);
+        let resp: PropertySearchResponse = self.fetch_post(&url, &addresses).await?;
+        self.client.update_credits(&resp.account);
+        Ok(resp)
     }
 
     /// Get event history for a list of property IDs.
@@ -379,7 +377,7 @@ impl<'a> PropertyClient<'a> {
         &self,
         params: EventHistoryParams,
     ) -> Result<PropertyEventHistoryResponse> {
-        let url = format!("{}/v1/property/event_history", self.base_url);
+        let url = format!("{}/v1/property/event_history", self.client.base_url);
         let body = params.to_request_body();
         self.fetch_post(&url, &body).await
     }
@@ -405,29 +403,46 @@ impl<'a> PropertyClient<'a> {
         } else {
             format!("?{}", query_parts.join("&"))
         };
-        let url = format!("{}/v2/property_search{}", self.base_url, query);
+        let url = format!("{}/v2/property_search{}", self.client.base_url, query);
         self.fetch_post(&url, &request).await
     }
 
     async fn fetch_get<T: DeserializeOwned>(&self, url: &str) -> Result<T> {
-        let response = self
-            .http
-            .get(url)
-            .header("Authorization", self.api_key)
-            .send()
-            .await?;
+        for attempt in 0..=self.client.retry_config.max_retries {
+            let response = self
+                .client
+                .http
+                .get(url)
+                .header("Authorization", &self.client.api_key)
+                .send()
+                .await?;
 
-        let status = response.status();
-        if !status.is_success() {
-            let message = response.text().await.unwrap_or_default();
-            return Err(ParclError::ApiError {
-                status: status.as_u16(),
-                message,
-            });
+            let status = response.status();
+            if status.as_u16() == 429 && attempt < self.client.retry_config.max_retries {
+                let backoff =
+                    self.client.retry_config.initial_backoff_ms * 2u64.pow(attempt);
+                tokio::time::sleep(std::time::Duration::from_millis(backoff)).await;
+                continue;
+            }
+
+            if !status.is_success() {
+                let message = response.text().await.unwrap_or_default();
+                if status.as_u16() == 429 {
+                    return Err(ParclError::RateLimited {
+                        attempts: attempt + 1,
+                        message,
+                    });
+                }
+                return Err(ParclError::ApiError {
+                    status: status.as_u16(),
+                    message,
+                });
+            }
+
+            let data: T = response.json().await?;
+            return Ok(data);
         }
-
-        let data: T = response.json().await?;
-        Ok(data)
+        unreachable!()
     }
 
     async fn fetch_post<B: Serialize, T: DeserializeOwned>(
@@ -435,25 +450,42 @@ impl<'a> PropertyClient<'a> {
         url: &str,
         body: &B,
     ) -> Result<T> {
-        let response = self
-            .http
-            .post(url)
-            .header("Authorization", self.api_key)
-            .json(body)
-            .send()
-            .await?;
+        for attempt in 0..=self.client.retry_config.max_retries {
+            let response = self
+                .client
+                .http
+                .post(url)
+                .header("Authorization", &self.client.api_key)
+                .json(body)
+                .send()
+                .await?;
 
-        let status = response.status();
-        if !status.is_success() {
-            let message = response.text().await.unwrap_or_default();
-            return Err(ParclError::ApiError {
-                status: status.as_u16(),
-                message,
-            });
+            let status = response.status();
+            if status.as_u16() == 429 && attempt < self.client.retry_config.max_retries {
+                let backoff =
+                    self.client.retry_config.initial_backoff_ms * 2u64.pow(attempt);
+                tokio::time::sleep(std::time::Duration::from_millis(backoff)).await;
+                continue;
+            }
+
+            if !status.is_success() {
+                let message = response.text().await.unwrap_or_default();
+                if status.as_u16() == 429 {
+                    return Err(ParclError::RateLimited {
+                        attempts: attempt + 1,
+                        message,
+                    });
+                }
+                return Err(ParclError::ApiError {
+                    status: status.as_u16(),
+                    message,
+                });
+            }
+
+            let data: T = response.json().await?;
+            return Ok(data);
         }
-
-        let data: T = response.json().await?;
-        Ok(data)
+        unreachable!()
     }
 }
 

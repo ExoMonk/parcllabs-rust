@@ -10,6 +10,8 @@ pub struct PaginatedResponse<T> {
     pub limit: u64,
     pub offset: u64,
     pub links: PaginationLinks,
+    #[serde(default)]
+    pub account: Option<AccountInfo>,
 }
 
 /// Paginated response for market metrics (includes parcl_id at top level).
@@ -21,6 +23,8 @@ pub struct MetricsResponse<T> {
     pub limit: u64,
     pub offset: u64,
     pub links: PaginationLinks,
+    #[serde(default)]
+    pub account: Option<AccountInfo>,
 }
 
 /// Paginated response for batch POST requests (no top-level parcl_id).
@@ -31,6 +35,8 @@ pub struct BatchMetricsResponse<T> {
     pub limit: u64,
     pub offset: u64,
     pub links: PaginationLinks,
+    #[serde(default)]
+    pub account: Option<AccountInfo>,
 }
 
 /// Navigation links for paginated responses.
@@ -690,11 +696,18 @@ pub struct PortfolioRentalListingsRollingCounts {
 // Property API — Response Models
 // ============================================================================
 
-/// API account/credit usage info returned by property endpoints.
+/// API account/credit usage info returned in API responses.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct AccountInfo {
     pub est_credits_used: Option<i64>,
     pub est_remaining_credits: Option<i64>,
+}
+
+/// Session-level credit usage summary.
+#[derive(Debug, Clone)]
+pub struct AccountUsage {
+    pub est_session_credits_used: i64,
+    pub est_remaining_credits: i64,
 }
 
 /// Response from `GET /v1/property/search` and `POST /v1/property/search_address`.

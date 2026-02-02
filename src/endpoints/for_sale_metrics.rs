@@ -1,17 +1,15 @@
 //! For-sale market metrics endpoints for tracking inventory and listings.
 
-use crate::error::{ParclError, Result};
+use crate::error::Result;
 use crate::models::{
     BatchMetricsResponse, ForSaleInventory, ForSaleInventoryPriceChanges, MetricsResponse,
     NewListingsRollingCounts, PropertyType,
 };
-use reqwest::Client;
+use crate::ParclClient;
 
 /// Client for for-sale market metrics API endpoints.
 pub struct ForSaleMetricsClient<'a> {
-    http: &'a Client,
-    base_url: &'a str,
-    api_key: &'a str,
+    client: &'a ParclClient,
 }
 
 /// Query parameters for for-sale metrics requests.
@@ -115,12 +113,8 @@ impl ForSaleMetricsParams {
 }
 
 impl<'a> ForSaleMetricsClient<'a> {
-    pub(crate) fn new(http: &'a Client, base_url: &'a str, api_key: &'a str) -> Self {
-        Self {
-            http,
-            base_url,
-            api_key,
-        }
+    pub(crate) fn new(client: &'a ParclClient) -> Self {
+        Self { client }
     }
 
     /// Retrieves current for-sale inventory counts.
@@ -133,13 +127,20 @@ impl<'a> ForSaleMetricsClient<'a> {
         params: Option<ForSaleMetricsParams>,
     ) -> Result<MetricsResponse<ForSaleInventory>> {
         let params = params.unwrap_or_default();
-        let auto_paginate = params.auto_paginate;
-        let query = params.to_query_string();
         let url = format!(
             "{}/v1/for_sale_market_metrics/{}/for_sale_inventory{}",
-            self.base_url, parcl_id, query
+            self.client.base_url, parcl_id, params.to_query_string()
         );
-        self.fetch_with_pagination(&url, auto_paginate).await
+        let resp = super::common::get_with_pagination(
+            &self.client.http,
+            &self.client.api_key,
+            &url,
+            params.auto_paginate,
+            &self.client.retry_config,
+        )
+        .await?;
+        self.client.update_credits(&resp.account);
+        Ok(resp)
     }
 
     /// Retrieves for-sale inventory price change metrics.
@@ -153,13 +154,20 @@ impl<'a> ForSaleMetricsClient<'a> {
         params: Option<ForSaleMetricsParams>,
     ) -> Result<MetricsResponse<ForSaleInventoryPriceChanges>> {
         let params = params.unwrap_or_default();
-        let auto_paginate = params.auto_paginate;
-        let query = params.to_query_string();
         let url = format!(
             "{}/v1/for_sale_market_metrics/{}/for_sale_inventory_price_changes{}",
-            self.base_url, parcl_id, query
+            self.client.base_url, parcl_id, params.to_query_string()
         );
-        self.fetch_with_pagination(&url, auto_paginate).await
+        let resp = super::common::get_with_pagination(
+            &self.client.http,
+            &self.client.api_key,
+            &url,
+            params.auto_paginate,
+            &self.client.retry_config,
+        )
+        .await?;
+        self.client.update_credits(&resp.account);
+        Ok(resp)
     }
 
     /// Retrieves rolling counts of new for-sale listings.
@@ -172,13 +180,20 @@ impl<'a> ForSaleMetricsClient<'a> {
         params: Option<ForSaleMetricsParams>,
     ) -> Result<MetricsResponse<NewListingsRollingCounts>> {
         let params = params.unwrap_or_default();
-        let auto_paginate = params.auto_paginate;
-        let query = params.to_query_string();
         let url = format!(
             "{}/v1/for_sale_market_metrics/{}/new_listings_rolling_counts{}",
-            self.base_url, parcl_id, query
+            self.client.base_url, parcl_id, params.to_query_string()
         );
-        self.fetch_with_pagination(&url, auto_paginate).await
+        let resp = super::common::get_with_pagination(
+            &self.client.http,
+            &self.client.api_key,
+            &url,
+            params.auto_paginate,
+            &self.client.retry_config,
+        )
+        .await?;
+        self.client.update_credits(&resp.account);
+        Ok(resp)
     }
 
     // --- Batch POST methods ---
@@ -191,15 +206,18 @@ impl<'a> ForSaleMetricsClient<'a> {
     ) -> Result<BatchMetricsResponse<ForSaleInventory>> {
         let params = params.unwrap_or_default();
         let body = params.to_batch_body(&parcl_ids);
-        let url = format!("{}/v1/for_sale_market_metrics/for_sale_inventory", self.base_url);
-        super::common::post_with_pagination(
-            self.http,
-            self.api_key,
+        let url = format!("{}/v1/for_sale_market_metrics/for_sale_inventory", self.client.base_url);
+        let resp = super::common::post_with_pagination(
+            &self.client.http,
+            &self.client.api_key,
             &url,
             &body,
             params.auto_paginate,
+            &self.client.retry_config,
         )
-        .await
+        .await?;
+        self.client.update_credits(&resp.account);
+        Ok(resp)
     }
 
     /// Batch retrieves for-sale inventory price changes for multiple markets.
@@ -210,15 +228,18 @@ impl<'a> ForSaleMetricsClient<'a> {
     ) -> Result<BatchMetricsResponse<ForSaleInventoryPriceChanges>> {
         let params = params.unwrap_or_default();
         let body = params.to_batch_body(&parcl_ids);
-        let url = format!("{}/v1/for_sale_market_metrics/for_sale_inventory_price_changes", self.base_url);
-        super::common::post_with_pagination(
-            self.http,
-            self.api_key,
+        let url = format!("{}/v1/for_sale_market_metrics/for_sale_inventory_price_changes", self.client.base_url);
+        let resp = super::common::post_with_pagination(
+            &self.client.http,
+            &self.client.api_key,
             &url,
             &body,
             params.auto_paginate,
+            &self.client.retry_config,
         )
-        .await
+        .await?;
+        self.client.update_credits(&resp.account);
+        Ok(resp)
     }
 
     /// Batch retrieves new listings rolling counts for multiple markets.
@@ -229,57 +250,18 @@ impl<'a> ForSaleMetricsClient<'a> {
     ) -> Result<BatchMetricsResponse<NewListingsRollingCounts>> {
         let params = params.unwrap_or_default();
         let body = params.to_batch_body(&parcl_ids);
-        let url = format!("{}/v1/for_sale_market_metrics/new_listings_rolling_counts", self.base_url);
-        super::common::post_with_pagination(
-            self.http,
-            self.api_key,
+        let url = format!("{}/v1/for_sale_market_metrics/new_listings_rolling_counts", self.client.base_url);
+        let resp = super::common::post_with_pagination(
+            &self.client.http,
+            &self.client.api_key,
             &url,
             &body,
             params.auto_paginate,
+            &self.client.retry_config,
         )
-        .await
-    }
-
-    async fn fetch_with_pagination<T: serde::de::DeserializeOwned>(
-        &self,
-        url: &str,
-        auto_paginate: bool,
-    ) -> Result<MetricsResponse<T>> {
-        let mut response = self.fetch_page(url).await?;
-
-        if auto_paginate {
-            while let Some(ref next_url) = response.links.next {
-                let next_page: MetricsResponse<T> = self.fetch_page(next_url).await?;
-                response.items.extend(next_page.items);
-                response.links = next_page.links;
-            }
-        }
-
-        Ok(response)
-    }
-
-    async fn fetch_page<T: serde::de::DeserializeOwned>(
-        &self,
-        url: &str,
-    ) -> Result<MetricsResponse<T>> {
-        let response = self
-            .http
-            .get(url)
-            .header("Authorization", self.api_key)
-            .send()
-            .await?;
-
-        let status = response.status();
-        if !status.is_success() {
-            let message = response.text().await.unwrap_or_default();
-            return Err(ParclError::ApiError {
-                status: status.as_u16(),
-                message,
-            });
-        }
-
-        let data: MetricsResponse<T> = response.json().await?;
-        Ok(data)
+        .await?;
+        self.client.update_credits(&resp.account);
+        Ok(resp)
     }
 }
 

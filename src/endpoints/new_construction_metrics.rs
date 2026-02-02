@@ -1,14 +1,12 @@
 //! New construction metrics endpoints for tracking new-build housing data.
 
-use crate::error::{ParclError, Result};
+use crate::error::Result;
 use crate::models::{BatchMetricsResponse, HousingEventCounts, HousingEventPrices, MetricsResponse, PropertyType};
-use reqwest::Client;
+use crate::ParclClient;
 
 /// Client for new construction metrics API endpoints.
 pub struct NewConstructionMetricsClient<'a> {
-    http: &'a Client,
-    base_url: &'a str,
-    api_key: &'a str,
+    client: &'a ParclClient,
 }
 
 /// Query parameters for new construction metrics requests.
@@ -112,12 +110,8 @@ impl NewConstructionMetricsParams {
 }
 
 impl<'a> NewConstructionMetricsClient<'a> {
-    pub(crate) fn new(http: &'a Client, base_url: &'a str, api_key: &'a str) -> Self {
-        Self {
-            http,
-            base_url,
-            api_key,
-        }
+    pub(crate) fn new(client: &'a ParclClient) -> Self {
+        Self { client }
     }
 
     /// Retrieves new construction housing event counts.
@@ -127,13 +121,20 @@ impl<'a> NewConstructionMetricsClient<'a> {
         params: Option<NewConstructionMetricsParams>,
     ) -> Result<MetricsResponse<HousingEventCounts>> {
         let params = params.unwrap_or_default();
-        let auto_paginate = params.auto_paginate;
-        let query = params.to_query_string();
         let url = format!(
             "{}/v1/new_construction_metrics/{}/housing_event_counts{}",
-            self.base_url, parcl_id, query
+            self.client.base_url, parcl_id, params.to_query_string()
         );
-        self.fetch_with_pagination(&url, auto_paginate).await
+        let resp = super::common::get_with_pagination(
+            &self.client.http,
+            &self.client.api_key,
+            &url,
+            params.auto_paginate,
+            &self.client.retry_config,
+        )
+        .await?;
+        self.client.update_credits(&resp.account);
+        Ok(resp)
     }
 
     /// Retrieves new construction housing event prices.
@@ -143,13 +144,20 @@ impl<'a> NewConstructionMetricsClient<'a> {
         params: Option<NewConstructionMetricsParams>,
     ) -> Result<MetricsResponse<HousingEventPrices>> {
         let params = params.unwrap_or_default();
-        let auto_paginate = params.auto_paginate;
-        let query = params.to_query_string();
         let url = format!(
             "{}/v1/new_construction_metrics/{}/housing_event_prices{}",
-            self.base_url, parcl_id, query
+            self.client.base_url, parcl_id, params.to_query_string()
         );
-        self.fetch_with_pagination(&url, auto_paginate).await
+        let resp = super::common::get_with_pagination(
+            &self.client.http,
+            &self.client.api_key,
+            &url,
+            params.auto_paginate,
+            &self.client.retry_config,
+        )
+        .await?;
+        self.client.update_credits(&resp.account);
+        Ok(resp)
     }
 
     // --- Batch POST methods ---
@@ -162,15 +170,18 @@ impl<'a> NewConstructionMetricsClient<'a> {
     ) -> Result<BatchMetricsResponse<HousingEventCounts>> {
         let params = params.unwrap_or_default();
         let body = params.to_batch_body(&parcl_ids);
-        let url = format!("{}/v1/new_construction_metrics/housing_event_counts", self.base_url);
-        super::common::post_with_pagination(
-            self.http,
-            self.api_key,
+        let url = format!("{}/v1/new_construction_metrics/housing_event_counts", self.client.base_url);
+        let resp = super::common::post_with_pagination(
+            &self.client.http,
+            &self.client.api_key,
             &url,
             &body,
             params.auto_paginate,
+            &self.client.retry_config,
         )
-        .await
+        .await?;
+        self.client.update_credits(&resp.account);
+        Ok(resp)
     }
 
     /// Batch retrieves housing event prices for multiple markets.
@@ -181,57 +192,18 @@ impl<'a> NewConstructionMetricsClient<'a> {
     ) -> Result<BatchMetricsResponse<HousingEventPrices>> {
         let params = params.unwrap_or_default();
         let body = params.to_batch_body(&parcl_ids);
-        let url = format!("{}/v1/new_construction_metrics/housing_event_prices", self.base_url);
-        super::common::post_with_pagination(
-            self.http,
-            self.api_key,
+        let url = format!("{}/v1/new_construction_metrics/housing_event_prices", self.client.base_url);
+        let resp = super::common::post_with_pagination(
+            &self.client.http,
+            &self.client.api_key,
             &url,
             &body,
             params.auto_paginate,
+            &self.client.retry_config,
         )
-        .await
-    }
-
-    async fn fetch_with_pagination<T: serde::de::DeserializeOwned>(
-        &self,
-        url: &str,
-        auto_paginate: bool,
-    ) -> Result<MetricsResponse<T>> {
-        let mut response = self.fetch_page(url).await?;
-
-        if auto_paginate {
-            while let Some(ref next_url) = response.links.next {
-                let next_page: MetricsResponse<T> = self.fetch_page(next_url).await?;
-                response.items.extend(next_page.items);
-                response.links = next_page.links;
-            }
-        }
-
-        Ok(response)
-    }
-
-    async fn fetch_page<T: serde::de::DeserializeOwned>(
-        &self,
-        url: &str,
-    ) -> Result<MetricsResponse<T>> {
-        let response = self
-            .http
-            .get(url)
-            .header("Authorization", self.api_key)
-            .send()
-            .await?;
-
-        let status = response.status();
-        if !status.is_success() {
-            let message = response.text().await.unwrap_or_default();
-            return Err(ParclError::ApiError {
-                status: status.as_u16(),
-                message,
-            });
-        }
-
-        let data: MetricsResponse<T> = response.json().await?;
-        Ok(data)
+        .await?;
+        self.client.update_credits(&resp.account);
+        Ok(resp)
     }
 }
 
