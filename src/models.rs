@@ -517,6 +517,71 @@ pub struct RentalNewListingsRollingCounts {
     pub rolling_90_day_count: Option<i64>,
 }
 
+// ============================================================================
+// Portfolio Metrics
+// ============================================================================
+
+/// Count breakdown by portfolio size for housing stock ownership.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct PortfolioSizeBreakdown {
+    pub portfolio_2_to_9: Option<i64>,
+    pub portfolio_10_to_99: Option<i64>,
+    pub portfolio_100_to_999: Option<i64>,
+    pub portfolio_1000_plus: Option<i64>,
+    pub all_portfolios: Option<i64>,
+}
+
+/// Percentage breakdown by portfolio size for housing stock ownership.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct PortfolioSizePctBreakdown {
+    pub portfolio_2_to_9: Option<f64>,
+    pub portfolio_10_to_99: Option<f64>,
+    pub portfolio_100_to_999: Option<f64>,
+    pub portfolio_1000_plus: Option<f64>,
+    pub all_portfolios: Option<f64>,
+}
+
+/// SF housing stock ownership broken down by portfolio size.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct PortfolioStockOwnership {
+    pub date: String,
+    /// Owned property counts by portfolio size.
+    pub count: Option<PortfolioSizeBreakdown>,
+    /// Percentage of SF housing stock by portfolio size.
+    pub pct_sf_housing_stock: Option<PortfolioSizePctBreakdown>,
+}
+
+/// Portfolio holder housing event counts.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct PortfolioHousingEventCounts {
+    pub date: String,
+    pub acquisitions: Option<i64>,
+    pub dispositions: Option<i64>,
+    pub new_listings_for_sale: Option<i64>,
+    pub new_rental_listings: Option<i64>,
+    pub transfers: Option<i64>,
+}
+
+/// Rolling counts for portfolio new for-sale listings.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct PortfolioNewListingsRollingCounts {
+    pub date: String,
+    /// Rolling counts of new for-sale listings.
+    pub count: Option<RollingCounts>,
+    /// Percentage of SF for-sale market by rolling period.
+    pub pct_sf_for_sale_market: Option<RollingPercentages>,
+}
+
+/// Rolling counts for portfolio new rental listings.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct PortfolioRentalListingsRollingCounts {
+    pub date: String,
+    /// Rolling counts of new rental listings.
+    pub count: Option<RollingCounts>,
+    /// Percentage of SF rental market by rolling period.
+    pub pct_sf_for_rent_market: Option<RollingPercentages>,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1080,5 +1145,105 @@ mod tests {
         assert!(market.region.is_none());
         assert!(market.case_shiller_10_market.is_none());
         assert!(market.case_shiller_20_market.is_none());
+    }
+
+    #[test]
+    fn portfolio_stock_ownership_deserialize() {
+        let json = r#"{
+            "date": "2025-12-01",
+            "count": {
+                "portfolio_2_to_9": 128469,
+                "portfolio_10_to_99": 26833,
+                "portfolio_100_to_999": 20128,
+                "portfolio_1000_plus": 52150,
+                "all_portfolios": 227580
+            },
+            "pct_sf_housing_stock": {
+                "portfolio_2_to_9": 7.46,
+                "portfolio_10_to_99": 1.56,
+                "portfolio_100_to_999": 1.17,
+                "portfolio_1000_plus": 3.03,
+                "all_portfolios": 13.22
+            }
+        }"#;
+
+        let ownership: PortfolioStockOwnership = serde_json::from_str(json).unwrap();
+        assert_eq!(ownership.date, "2025-12-01");
+        let c = ownership.count.unwrap();
+        assert_eq!(c.portfolio_2_to_9, Some(128469));
+        assert_eq!(c.all_portfolios, Some(227580));
+        let p = ownership.pct_sf_housing_stock.unwrap();
+        assert!((p.all_portfolios.unwrap() - 13.22).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn portfolio_housing_event_counts_deserialize() {
+        let json = r#"{
+            "date": "2025-12-01",
+            "acquisitions": 229,
+            "dispositions": 167,
+            "new_listings_for_sale": 152,
+            "new_rental_listings": 1685,
+            "transfers": 253
+        }"#;
+
+        let counts: PortfolioHousingEventCounts = serde_json::from_str(json).unwrap();
+        assert_eq!(counts.date, "2025-12-01");
+        assert_eq!(counts.acquisitions, Some(229));
+        assert_eq!(counts.dispositions, Some(167));
+        assert_eq!(counts.transfers, Some(253));
+    }
+
+    #[test]
+    fn portfolio_new_listings_rolling_counts_deserialize() {
+        let json = r#"{
+            "date": "2026-01-26",
+            "count": {
+                "rolling_7_day": 259,
+                "rolling_30_day": 1286,
+                "rolling_60_day": 2375,
+                "rolling_90_day": 3815
+            },
+            "pct_sf_for_sale_market": {
+                "rolling_7_day": 18.05,
+                "rolling_30_day": 18.46,
+                "rolling_60_day": 19.69,
+                "rolling_90_day": 19.41
+            }
+        }"#;
+
+        let data: PortfolioNewListingsRollingCounts = serde_json::from_str(json).unwrap();
+        assert_eq!(data.date, "2026-01-26");
+        let c = data.count.unwrap();
+        assert_eq!(c.rolling_7_day, Some(259));
+        assert_eq!(c.rolling_90_day, Some(3815));
+        let p = data.pct_sf_for_sale_market.unwrap();
+        assert!((p.rolling_7_day.unwrap() - 18.05).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn portfolio_rental_listings_rolling_counts_deserialize() {
+        let json = r#"{
+            "date": "2026-01-26",
+            "count": {
+                "rolling_7_day": 575,
+                "rolling_30_day": 3038,
+                "rolling_60_day": 6613,
+                "rolling_90_day": 10697
+            },
+            "pct_sf_for_rent_market": {
+                "rolling_7_day": 45.93,
+                "rolling_30_day": 45.04,
+                "rolling_60_day": 46.42,
+                "rolling_90_day": 46.4
+            }
+        }"#;
+
+        let data: PortfolioRentalListingsRollingCounts = serde_json::from_str(json).unwrap();
+        assert_eq!(data.date, "2026-01-26");
+        let c = data.count.unwrap();
+        assert_eq!(c.rolling_7_day, Some(575));
+        let p = data.pct_sf_for_rent_market.unwrap();
+        assert!((p.rolling_30_day.unwrap() - 45.04).abs() < f64::EPSILON);
     }
 }

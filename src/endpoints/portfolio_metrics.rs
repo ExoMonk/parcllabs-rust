@@ -2,8 +2,8 @@
 
 use crate::error::{ParclError, Result};
 use crate::models::{
-    HousingEventCounts, InvestorHousingStockOwnership, MetricsResponse, NewListingsRollingCounts,
-    PortfolioSize, RentalNewListingsRollingCounts,
+    MetricsResponse, PortfolioHousingEventCounts, PortfolioNewListingsRollingCounts,
+    PortfolioRentalListingsRollingCounts, PortfolioSize, PortfolioStockOwnership,
 };
 use reqwest::Client;
 
@@ -107,7 +107,7 @@ impl<'a> PortfolioMetricsClient<'a> {
         &self,
         parcl_id: i64,
         params: Option<PortfolioMetricsParams>,
-    ) -> Result<MetricsResponse<InvestorHousingStockOwnership>> {
+    ) -> Result<MetricsResponse<PortfolioStockOwnership>> {
         let params = params.unwrap_or_default();
         let auto_paginate = params.auto_paginate;
         let query = params.to_query_string();
@@ -123,7 +123,7 @@ impl<'a> PortfolioMetricsClient<'a> {
         &self,
         parcl_id: i64,
         params: Option<PortfolioMetricsParams>,
-    ) -> Result<MetricsResponse<HousingEventCounts>> {
+    ) -> Result<MetricsResponse<PortfolioHousingEventCounts>> {
         let params = params.unwrap_or_default();
         let auto_paginate = params.auto_paginate;
         let query = params.to_query_string();
@@ -139,7 +139,7 @@ impl<'a> PortfolioMetricsClient<'a> {
         &self,
         parcl_id: i64,
         params: Option<PortfolioMetricsParams>,
-    ) -> Result<MetricsResponse<NewListingsRollingCounts>> {
+    ) -> Result<MetricsResponse<PortfolioNewListingsRollingCounts>> {
         let params = params.unwrap_or_default();
         let auto_paginate = params.auto_paginate;
         let query = params.to_query_string();
@@ -155,7 +155,7 @@ impl<'a> PortfolioMetricsClient<'a> {
         &self,
         parcl_id: i64,
         params: Option<PortfolioMetricsParams>,
-    ) -> Result<MetricsResponse<RentalNewListingsRollingCounts>> {
+    ) -> Result<MetricsResponse<PortfolioRentalListingsRollingCounts>> {
         let params = params.unwrap_or_default();
         let auto_paginate = params.auto_paginate;
         let query = params.to_query_string();
